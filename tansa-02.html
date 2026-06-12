@@ -1,0 +1,1863 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#06070f">
+<meta name="description" content="TANSA-02 · Día 2 del taller LLMs para investigación académica. Una expedición orbital: recupera las siete sondas Von Neumann del sistema Kenkyū.">
+<title>TANSA-02 · LLMs para investigación — Día 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06070f; --ink:#e8e4d8; --dim:#cfc9bb; --faint:rgba(232,228,216,.45);
+  --amber:#ffb454; --cyan:#6ee7ff; --verm:#ff5a3c; --ok:#7dffa6; --bad:#ff8d7d; --vio:#b48cff;
+  --mono:'DotGothic16','Courier New',monospace;
+  --body:'Zen Maru Gothic',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:var(--body);color:var(--ink);position:fixed;inset:0;width:100%;
+  -webkit-user-select:none;user-select:none;-webkit-text-size-adjust:100%}
+button{font-family:var(--mono);cursor:pointer;touch-action:manipulation}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#crt{position:fixed;inset:0;pointer-events:none;z-index:40;
+  background:
+    radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(2,3,10,.55) 100%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px);}
+body.cine::before,body.cine::after{content:'';position:fixed;left:0;right:0;height:7vh;background:#000;z-index:45;transition:transform .5s}
+body.cine::before{top:0}body.cine::after{bottom:0}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;z-index:30;pointer-events:none}
+#hud button{pointer-events:auto}
+#hudTop{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:calc(8px + env(safe-area-inset-top)) 12px 0 12px}
+#brand{font-family:var(--mono);color:var(--amber);font-size:17px;letter-spacing:2px;text-shadow:0 0 12px rgba(255,180,84,.5)}
+#brand span{color:var(--cyan);font-size:13px;margin-left:7px;letter-spacing:4px}
+#pips{display:flex;gap:5px;align-items:center}
+.pip{width:11px;height:11px;border:1.5px solid var(--amber);border-radius:2px;opacity:.92;transition:all .4s}
+.pip.st{transform:rotate(45deg);border-radius:1px;border-color:var(--verm)}
+.pip.col{background:var(--amber);box-shadow:0 0 8px rgba(255,180,84,.7)}
+.pip.st.col{background:var(--verm);box-shadow:0 0 8px rgba(255,90,60,.7)}
+.pip.arch{background:var(--ok);border-color:var(--ok);box-shadow:0 0 8px rgba(125,255,166,.7)}
+#hudBtns{display:flex;gap:7px}
+.hbtn{background:rgba(10,14,30,.78);border:1px solid var(--amber);color:var(--amber);
+  border-radius:8px;padding:7px 10px;font-size:12px;letter-spacing:1px;min-height:38px}
+.hbtn:active{background:var(--amber);color:#15100a}
+.hbtn.off{opacity:.45;text-decoration:line-through}
+#objChip{position:fixed;top:calc(54px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+  max-width:94vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:rgba(10,14,30,.82);border:1px solid var(--cyan);color:var(--cyan);
+  border-radius:999px;padding:8px 16px;font-size:12.5px;letter-spacing:1px;min-height:38px;z-index:31}
+#objChip:active{background:var(--cyan);color:#06202a}
+#objChip.on{background:rgba(110,231,255,.16);box-shadow:0 0 14px rgba(110,231,255,.35)}
+#archBtn{position:fixed;top:calc(100px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);
+  background:rgba(10,14,30,.85);border:1px solid var(--ok);color:var(--ok);border-radius:999px;
+  padding:8px 16px;font-size:12px;letter-spacing:1px;min-height:38px;z-index:31}
+#readout{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + env(safe-area-inset-bottom));
+  font-family:var(--mono);font-size:11px;color:rgba(110,231,255,.7);letter-spacing:1px;text-align:center;pointer-events:none}
+#toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(132px + env(safe-area-inset-bottom));
+  width:min(92vw,540px);z-index:35;pointer-events:none;display:flex;flex-direction:column;align-items:center}
+.toast{background:rgba(8,12,26,.93);border-left:3px solid var(--amber);color:var(--ink);
+  font-family:var(--mono);font-size:12.5px;line-height:1.45;letter-spacing:.5px;
+  padding:8px 12px;margin-top:6px;border-radius:6px;max-width:100%;animation:fadeup .35s ease-out;box-shadow:0 4px 18px rgba(0,0,0,.5)}
+.toast.cy{border-left-color:var(--cyan)}.toast.ok{border-left-color:var(--ok)}
+@keyframes fadeup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+#ctl{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;
+  padding:0 14px calc(14px + env(safe-area-inset-bottom)) 14px;pointer-events:none;z-index:32}
+#ctl button{pointer-events:auto}
+#flyHint{font-family:var(--mono);font-size:11px;line-height:1.7;color:rgba(110,231,255,.65);
+  letter-spacing:1px;padding-bottom:8px;animation:fadeup .6s ease-out}
+#ctlR{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+#autoBtn{height:58px;padding:0 26px;border-radius:16px;border:1.5px solid var(--cyan);
+  background:rgba(10,14,30,.78);color:var(--cyan);font-size:15px;letter-spacing:2px}
+#autoBtn:active{background:var(--cyan);color:#06202a}
+#autoBtn.on{background:var(--cyan);color:#06202a;box-shadow:0 0 18px rgba(110,231,255,.5)}
+#keys{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(2px + env(safe-area-inset-bottom));
+  font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:1px;pointer-events:none;display:none}
+@media (hover:hover) and (pointer:fine){#keys{display:block}}
+
+/* ---------- PANEL (pantalla de mando) ---------- */
+#panel{position:fixed;inset:0;z-index:50;background:rgba(3,5,12,.82);display:flex;
+  padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)) 10px}
+#panel[hidden]{display:none}
+#pwrap{margin:auto;width:min(720px,100%);max-height:100%;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,#0c0f20,#090b16);border:1.5px solid var(--amber);border-radius:14px;
+  box-shadow:0 0 50px rgba(255,180,84,.14), inset 0 0 60px rgba(20,30,70,.35);overflow:hidden;
+  animation:fadeup .3s ease-out}
+.phead{padding:12px 14px;border-bottom:1px solid rgba(255,180,84,.3);display:flex;align-items:flex-start;gap:10px}
+.phl{flex:1;min-width:0}
+.ptag{font-family:var(--mono);font-size:10.5px;color:var(--cyan);border:1px solid var(--cyan);
+  border-radius:4px;padding:2px 6px;letter-spacing:1px;display:inline-block;margin-bottom:5px}
+.ptitle{font-family:var(--mono);font-size:19px;color:var(--amber);letter-spacing:2px;line-height:1.2}
+.ptitle small{color:var(--cyan);font-size:13px;letter-spacing:3px;margin-left:8px}
+.psub{font-size:12.5px;color:var(--dim);margin-top:3px;line-height:1.4}
+.ptime{font-family:var(--mono);font-size:10.5px;color:var(--faint);white-space:nowrap;border:1px dashed var(--faint);
+  border-radius:4px;padding:3px 6px;letter-spacing:1px}
+.pclose{width:38px;height:38px;border-radius:10px;border:1px solid var(--amber);background:transparent;
+  color:var(--amber);font-size:16px;flex-shrink:0}
+.pclose:active{background:var(--amber);color:#15100a}
+#pbody{overflow-y:auto;padding:16px 16px 26px 16px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.sec{margin:0 0 24px 0}
+.sec h3{font-family:var(--mono);color:var(--amber);font-size:13px;letter-spacing:3px;
+  border-left:3px solid var(--amber);padding-left:9px;margin:0 0 12px 0}
+.sec h3.cy{color:var(--cyan);border-color:var(--cyan)}
+p.bt{font-size:14.5px;line-height:1.7;color:var(--ink);margin:0 0 11px 0}
+p.bt b{color:var(--amber);font-weight:700}
+p.bt i{color:var(--cyan);font-style:normal}
+.chips{display:grid;gap:8px;margin:12px 0}
+.chip{border:1px solid rgba(110,231,255,.4);border-radius:9px;padding:9px 11px;background:rgba(110,231,255,.04)}
+.chip b{font-family:var(--mono);color:var(--cyan);font-size:12px;letter-spacing:2px;display:block;margin-bottom:2px}
+.chip span{font-size:13px;color:var(--dim);line-height:1.5}
+.chip.am{border-color:rgba(255,180,84,.45);background:rgba(255,180,84,.05)}
+.chip.am b{color:var(--amber)}
+.promptbox{font-family:var(--mono);font-size:12.5px;line-height:1.6;background:rgba(255,180,84,.06);
+  border:1px dashed var(--amber);border-radius:9px;padding:11px;color:#ffd9a0;white-space:pre-wrap;
+  word-break:break-word;margin:10px 0}
+.badbox{font-family:var(--mono);font-size:13px;background:rgba(255,90,60,.07);border:1px dashed var(--verm);
+  border-radius:9px;padding:11px;color:#ffb3a3;margin:10px 0}
+.quote{border-left:3px solid var(--vio);padding:10px 14px;margin:12px 0;background:rgba(180,140,255,.06);border-radius:0 9px 9px 0}
+.quote .q{font-family:var(--mono);font-size:14.5px;color:#d9c4ff;line-height:1.6}
+.quote cite{display:block;font-size:11.5px;color:var(--faint);margin-top:7px;font-style:normal;font-family:var(--mono);letter-spacing:1px}
+.note{font-size:12.5px;color:var(--faint);line-height:1.6;margin:8px 0}
+
+/* ejercicios */
+.xprog{font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:2px;margin-bottom:7px}
+.xcard{border:1.5px solid var(--cyan);border-radius:11px;padding:13px;font-size:14.5px;line-height:1.6;
+  background:rgba(110,231,255,.05);margin:9px 0;min-height:60px;transition:border-color .2s}
+.xcard.ok{border-color:var(--ok);background:rgba(125,255,166,.07)}
+.xcard.bad{border-color:var(--bad);background:rgba(255,141,125,.07);animation:shake .35s}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.hypo{font-family:var(--mono);text-align:center;font-size:14px;color:var(--amber);border:1px solid var(--amber);
+  border-radius:9px;padding:10px;margin:10px 0;background:rgba(255,180,84,.06)}
+.cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin:10px 0}
+.catb{min-height:48px;border:1px solid var(--amber);border-radius:9px;background:rgba(255,180,84,.04);
+  color:var(--ink);font-size:12px;letter-spacing:1px;padding:6px;line-height:1.3}
+.catb:active{background:var(--amber);color:#15100a}
+.catb.ok{border-color:var(--ok);background:rgba(125,255,166,.15);color:var(--ok)}
+.catb.bad{border-color:var(--bad);background:rgba(255,141,125,.12);color:var(--bad)}
+.catb:disabled{opacity:.45}
+.fb{font-size:13px;line-height:1.55;color:var(--dim);margin:8px 0;min-height:18px}
+.fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
+.nextb{display:block;width:100%;min-height:50px;border:none;border-radius:11px;background:var(--amber);
+  color:#16120a;font-size:15px;letter-spacing:2px;margin:12px 0 2px 0}
+.nextb:active{filter:brightness(1.2)}
+.nextb.ghost{background:transparent;border:1.5px solid var(--amber);color:var(--amber)}
+.nextb.cy{background:var(--cyan);color:#06202a}
+.nextb.vio{background:var(--vio);color:#1d1430}
+.nextb:disabled{opacity:.35}
+.ocard{position:relative;border:1.5px solid rgba(110,231,255,.5);border-radius:11px;padding:12px 52px 12px 13px;
+  font-size:13.5px;line-height:1.55;background:rgba(110,231,255,.04);margin:8px 0;cursor:pointer;min-height:52px}
+.ocard .onum{position:absolute;right:9px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;
+  border:1.5px solid var(--amber);color:var(--amber);font-family:var(--mono);font-size:14px;
+  display:flex;align-items:center;justify-content:center;background:rgba(10,14,30,.6)}
+.ocard.ok{border-color:var(--ok)}.ocard.ok .onum{border-color:var(--ok);color:var(--ok)}
+.ocard.bad{border-color:var(--bad)}.ocard.bad .onum{border-color:var(--bad);color:var(--bad)}
+.slwrap{margin:10px 0 4px 0}
+.sllab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--faint);
+  letter-spacing:1px;margin:6px 0 2px 0;gap:10px}
+.sllab span{max-width:46%;line-height:1.4}
+.sllab span:last-child{text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:34px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;
+  background:linear-gradient(90deg,var(--verm),var(--amber),var(--cyan))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;
+  background:var(--ink);border:3px solid var(--amber);margin-top:-11px;box-shadow:0 0 10px rgba(255,180,84,.5)}
+input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--verm),var(--amber),var(--cyan))}
+input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:var(--ink);border:3px solid var(--amber)}
+.ftab{border:1px solid rgba(110,231,255,.35);border-radius:10px;overflow:hidden;margin:10px 0;font-family:var(--mono)}
+.ftr{display:grid;grid-template-columns:0.55fr 1.25fr 0.75fr 1.05fr}
+.fcell{border:1px solid rgba(255,255,255,.09);padding:9px 6px;font-size:12px;line-height:1.4;min-height:42px;
+  display:flex;align-items:center;word-break:break-word;color:var(--dim)}
+.fcell.fh{background:rgba(110,231,255,.09);color:var(--cyan);font-size:10.5px;letter-spacing:1px}
+.fcell.tap{cursor:pointer}
+.fcell.sel{outline:2px solid var(--cyan);outline-offset:-2px;background:rgba(110,231,255,.12);color:var(--ink)}
+.fcell.hit{background:rgba(125,255,166,.16);color:var(--ok);outline:2px solid var(--ok);outline-offset:-2px}
+.fcell.wrongmark{background:rgba(255,141,125,.14);outline:2px solid var(--bad);outline-offset:-2px}
+.leds{display:flex;gap:10px;align-items:center;margin:4px 0 14px 0;flex-wrap:wrap}
+.ledw{display:flex;flex-direction:column;align-items:center;gap:4px;width:54px}
+.led{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--amber);transition:all .3s}
+.led.on{background:var(--ok);border-color:var(--ok);box-shadow:0 0 10px rgba(125,255,166,.8)}
+.led.err{background:var(--amber);box-shadow:0 0 8px rgba(255,180,84,.7)}
+.ledw small{font-family:var(--mono);font-size:7.5px;color:var(--faint);letter-spacing:.5px;text-align:center;line-height:1.3}
+.stamp{display:inline-block;font-family:var(--mono);color:var(--ok);border:2px solid var(--ok);border-radius:6px;
+  padding:7px 12px;letter-spacing:3px;font-size:13px;transform:rotate(-3deg);margin:12px 0;
+  box-shadow:0 0 14px rgba(125,255,166,.3);animation:stampin .4s ease-out}
+@keyframes stampin{from{transform:rotate(-3deg) scale(1.6);opacity:0}to{transform:rotate(-3deg) scale(1);opacity:1}}
+.statline{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px;color:var(--dim);
+  padding:7px 0;border-bottom:1px dotted rgba(232,228,216,.2);gap:12px}
+.statline b{color:var(--amber)}
+.mrec{display:grid;gap:6px;margin:12px 0}
+.mrec div{font-size:12.5px;color:var(--dim);line-height:1.5;padding-left:10px;border-left:2px solid var(--cyan)}
+.mrec div b{font-family:var(--mono);color:var(--cyan);font-size:11px;letter-spacing:1px}
+.tiny{font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:1px;background:none;border:none;
+  text-decoration:underline;padding:8px}
+
+/* ---------- START ---------- */
+#start{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:24px;gap:15px;
+  background:radial-gradient(ellipse at 50% 28%, rgba(22,28,66,.55), rgba(4,6,14,.93) 75%)}
+#start h1{font-family:var(--mono);font-size:clamp(40px,11vw,72px);color:var(--amber);margin:0;letter-spacing:4px;
+  text-shadow:0 0 30px rgba(255,180,84,.55),0 0 60px rgba(255,90,60,.3)}
+#start .jp{font-family:var(--mono);color:var(--cyan);font-size:clamp(15px,4vw,22px);letter-spacing:14px;margin:-4px 0 4px 14px}
+#start .sub{font-family:var(--mono);font-size:12.5px;color:var(--verm);letter-spacing:2px;border:1px solid var(--verm);
+  border-radius:999px;padding:6px 14px}
+#start .lore{max-width:480px;font-size:14.5px;line-height:1.75;color:var(--dim);margin:6px 0}
+.startb{width:min(320px,86vw);min-height:56px;border:none;border-radius:13px;background:var(--amber);color:#16120a;
+  font-size:16px;letter-spacing:3px;box-shadow:0 0 26px rgba(255,180,84,.35)}
+.startb:active{filter:brightness(1.15)}
+.startb.ghost{background:transparent;border:1.5px solid var(--amber);color:var(--amber);box-shadow:none}
+#start .credit{font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:1px;margin-top:8px;line-height:1.8}
+@media (max-width:380px){
+  #autoBtn{height:52px;padding:0 20px;font-size:14px}
+  #pbody{padding:13px 12px 22px 12px}.ptitle{font-size:17px}
+}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="crt"></div>
+
+<div id="hud">
+  <div id="hudTop">
+    <div id="brand">TANSA-02<span>探査</span></div>
+    <div id="pips"></div>
+    <div id="hudBtns">
+      <button class="hbtn" id="mapBtn">MAPA</button>
+      <button class="hbtn" id="sndBtn">SND</button>
+    </div>
+  </div>
+  <button id="objChip">OBJETIVO ▸ —</button>
+  <button id="archBtn" hidden>VER ARCHIVO ▸</button>
+  <div id="readout"></div>
+  <div id="toasts"></div>
+  <div id="ctl">
+    <div id="flyHint" hidden>◇ MANTÉN PRESIONADO<br>Y LA NAVE VA HACIA TU DEDO</div>
+    <div id="ctlR">
+      <button id="autoBtn">AUTO ▸</button>
+    </div>
+  </div>
+  <div id="keys">mantén presionado el mouse para volar · ESPACIO auto · M mapa · ESC cerrar</div>
+</div>
+
+<div id="panel" hidden>
+  <div id="pwrap">
+    <div class="phead">
+      <div class="phl">
+        <span class="ptag" id="ptag"></span>
+        <div class="ptitle" id="ptitle"></div>
+        <div class="psub" id="psub"></div>
+      </div>
+      <span class="ptime" id="ptime"></span>
+      <button class="pclose" id="pclose">✕</button>
+    </div>
+    <div id="pbody"></div>
+  </div>
+</div>
+
+<div id="start">
+  <div class="sub">PROGRAMA KOTOBA · DÍA 2</div>
+  <h1>TANSA-02</h1>
+  <div class="jp">タンサ・ゼロニ</div>
+  <p class="lore">Hace años, el programa KOTOBA sembró siete sondas Von Neumann en el sistema Kenkyū.
+  Cada una pasó ese tiempo aprendiendo una sola cosa sobre cómo investigar con modelos de lenguaje.
+  Tu misión: recuperarlas.</p>
+  <button class="startb" id="startBtn">ENCENDER SISTEMAS</button>
+  <button class="startb ghost" id="contBtn" hidden>CONTINUAR MISIÓN</button>
+  <div class="credit">LLMs para investigación académica · taller de Raúl Gabino<br>audio recomendado · gira tu teléfono solo si quieres</div>
+</div>
+
+<noscript><p style="color:#e8e4d8;padding:20px;font-family:monospace">Esta nave necesita JavaScript para volar.</p></noscript>
+
+<script>
+(()=>{ 'use strict';
+/* ================= helpers ================= */
+const TAU=Math.PI*2, PI=Math.PI;
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const smooth=t=>t*t*(3-2*t);
+const hyp=(x,y)=>Math.sqrt(x*x+y*y);
+const fmt=n=>Math.round(n).toLocaleString('es-MX');
+const $=s=>document.querySelector(s);
+function mulberry(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(arr,rng){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor((rng?rng():Math.random())*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function el(html){const d=document.createElement('div');d.innerHTML=html;return d.firstElementChild}
+
+/* ================= CONTENIDO DEL TALLER ================= */
+const STOPS=[
+{ id:'kotoba', station:true, name:'ESTACIÓN KOTOBA', jp:'言葉', probe:null,
+  tema:'REPASO DEL DÍA 1', sub:'Chequeo pre-vuelo · seis subsistemas, seis ideas', time:'≈12 MIN',
+  radio:'CONTROL: Bienvenido de vuelta. La estación no suelta ninguna nave sin chequeo. Seis subsistemas, seis ideas del Día 1.',
+  intro:'Antes de encender motores, la estación exige un chequeo. Cada subsistema corresponde a algo que viste en el Día 1: respóndelo bien y se enciende. Con los seis en verde, tienes autorización de lanzamiento.',
+  systems:[
+   {sys:'MOTOR DE PREDICCIÓN', recap:'Un LLM no consulta una base de datos: genera texto prediciendo la siguiente palabra con todo el contexto a la vista, no solo la palabra anterior como una cadena de Markov.',
+    q:'Cuando un LLM redacta, ¿qué hace en el fondo?',
+    opts:['Busca la respuesta en una base de datos interna','Predice la siguiente palabra ponderando todo el contexto','Recita textos que memorizó letra por letra'], ok:1,
+    fb:'Predice, no consulta. Por eso suena seguro incluso cuando inventa.'},
+   {sys:'REACTOR DE TOKENS', recap:'El token es el átomo del lenguaje. La ventana de contexto define cuántos puede atender a la vez: lo que queda fuera no existe para el modelo.',
+    q:'La ventana de contexto es…',
+    opts:['La memoria permanente del modelo','El límite de tokens que puede atender a la vez','La velocidad a la que responde'], ok:1,
+    fb:'Es el escritorio del modelo: lo que no cabe ahí, no lo ve.'},
+   {sys:'GIROSCOPIO DE ATENCIÓN', recap:'La atención decide qué palabras del contexto pesan para interpretar cada palabra nueva. Así «banco» se vuelve río o préstamo.',
+    q:'¿Para qué sirve el mecanismo de atención?',
+    opts:['Para que el modelo escriba más rápido','Para guardar lo que dijiste ayer','Para ponderar qué partes del contexto importan en cada paso'], ok:2,
+    fb:'Cada palabra nueva «mira» a las demás y decide cuáles le importan.'},
+   {sys:'ANTENA DE COMUNICACIONES', recap:'El modelo optimiza plausibilidad, no verdad. Una cita con autor, año y DOI puede ser invención bien formateada.',
+    q:'El modelo te da una cita perfecta con DOI. ¿Qué haces?',
+    opts:['La uso: el formato correcto indica que existe','La verifico en la fuente original, siempre','La descarto: toda cita de un LLM es falsa'], ok:1,
+    fb:'Regla de oro del Día 1: toda cita se verifica en la fuente. Sin excepciones.'},
+   {sys:'SENSORES DE FLOTA', recap:'Gemini, Claude, Grok, Perplexity, DeepSeek: cada modelo tiene perfil, fortalezas y debilidades propias.',
+    q:'¿Cuál fue la recomendación sobre los cinco modelos?',
+    opts:['Elegir el más famoso y usarlo para todo','Usar solo los open source','Combinarlos según la tarea, conociendo sus límites'], ok:2,
+    fb:'No te casas con uno: armas una flota y eliges nave según la misión.'},
+   {sys:'ESCUDOS DE ANDAMIAJE', recap:'Alrededor del modelo hay capas: system prompt, herramientas, RAG, memoria, guardrails, agentes. Y detrás, geopolítica: elegir modelo es elegir sesgos.',
+    q:'El «andamiaje» de un LLM se refiere a…',
+    opts:['Las capas que lo envuelven: system prompt, RAG, herramientas, guardrails','El hardware donde se entrena','Su número de parámetros'], ok:0,
+    fb:'Nunca hablas con el modelo desnudo: hablas con todo su andamiaje.'}
+  ],
+  done:'AUTORIZACIÓN DE LANZAMIENTO CONCEDIDA'
+},
+{ id:'meirei', name:'MEIREI', jp:'命令', probe:'VN-1',
+  tema:'TEMA 7 · EL PROMPT Y SU CONSTRUCCIÓN', sub:'Cinco piezas y una economía: la atención se gasta', time:'≈16 MIN',
+  radio:'CONTROL: Inserción limpia. La VN-1 guarda nueve fragmentos de una orden revuelta. Ordénalos.',
+  bita:[
+   '«Analiza mis encuestas porfa.» Eso recibió la VN-1 como instrucción, y devolvió catorce párrafos genéricos que no sirvieron para nada. El problema no era el modelo. Era la orden.',
+   'Un prompt de trabajo tiene cinco piezas:',
+   {chips:[
+     ['ROL','Quién quieres que sea el modelo: «eres una metodóloga experta en encuestas».'],
+     ['CONTEXTO','Lo que necesita saber de tu proyecto: datos, etapa, audiencia.'],
+     ['TAREA','El verbo exacto: clasifica, compara, propón, critica.'],
+     ['FORMATO','La forma de la salida: tabla, lista, párrafo, JSON.'],
+     ['RESTRICCIONES','Lo que no debe hacer: «no inventes categorías», «máximo 8 códigos».']
+   ]},
+   'Y una ley física: la atención es un presupuesto. Lo que pones <b>al inicio y al final pesa más</b>; el centro es la zona donde las cosas se pierden. Cada token de relleno cobra su parte y diluye lo importante. Cortesía breve, drama fuera.'
+  ],
+  exercise:{type:'tag', prompt:'La sonda recuperó 9 fragmentos de un prompt. Clasifica cada uno. Ojo: hay lastre que no aporta nada.',
+   cats:['ROL','CONTEXTO','TAREA','FORMATO','RESTRICCIONES','LASTRE'],
+   items:[
+    {t:'«Eres una metodóloga experta en encuestas de salud estudiantil.»', ok:0, fb:'Define quién responde. El rol orienta el registro y el criterio.'},
+    {t:'«Hola, ¿cómo estás? Espero que tengas un excelente día.»', ok:5, fb:'Amable, pero son tokens que diluyen. El modelo no necesita calentamiento.'},
+    {t:'«Trabajo con 120 respuestas abiertas de un cuestionario sobre hábitos de sueño en estudiantes de medicina.»', ok:1, fb:'Esto es lo que el modelo no puede adivinar: tu material y tu escenario.'},
+    {t:'«Propón un esquema de codificación para clasificar las respuestas.»', ok:2, fb:'El verbo exacto. Sin tarea clara, el modelo improvisa una.'},
+    {t:'«Mi tesis va lenta y mi directora ya me regañó dos veces.»', ok:5, fb:'Drama sin instrucción. No orienta nada y ocupa atención.'},
+    {t:'«Entrégalo como tabla: código, definición, ejemplo textual.»', ok:3, fb:'Formato: te ahorra la segunda vuelta de «ahora ponlo en tabla».'},
+    {t:'«No inventes categorías que no aparezcan en los datos.»', ok:4, fb:'Restricción directa contra la alucinación. De las piezas más rentables.'},
+    {t:'«El cuestionario se aplicó en marzo de 2026, justo antes de exámenes.»', ok:1, fb:'Contexto fino: esa fecha cambia la interpretación de los datos.'},
+    {t:'«Máximo ocho códigos; si dudas entre dos, pregúntame.»', ok:4, fb:'Restricción + permiso de preguntar: control sin rigidez.'}
+   ],
+   after:{title:'EL PROMPT ENSAMBLADO', bad:'analiza mis encuestas porfa',
+    good:'Eres una metodóloga experta en encuestas de salud estudiantil.\nTrabajo con 120 respuestas abiertas de un cuestionario sobre hábitos de sueño en estudiantes de medicina, aplicado en marzo de 2026, justo antes de exámenes.\nPropón un esquema de codificación para clasificar las respuestas.\nEntrégalo como tabla: código, definición, ejemplo textual.\nNo inventes categorías que no aparezcan en los datos. Máximo ocho códigos; si dudas entre dos, pregúntame.',
+    note:'Mismas ganas, otro instrumento. Fíjate dónde quedó cada pieza: tarea y restricciones cierran el prompt, donde la atención vuelve a subir.'}
+  },
+  quiz:[
+   {q:'En un prompt largo, ¿dónde conviene poner lo más importante?',
+    opts:['Al centro, donde hay más espacio','Al inicio, y repetirlo al final','Da igual: el modelo lee todo por igual'], ok:1,
+    fb:'Inicio y final pesan más en la atención. El centro es donde se pierden las instrucciones.'},
+   {q:'Si el modelo puede ignorar el lastre, ¿por qué estorba?',
+    opts:['Porque consume tokens y diluye la atención sobre lo que sí importa','Porque el modelo se ofende','No estorba: más contexto siempre es mejor'], ok:0,
+    fb:'Contexto relevante alimenta; contexto basura diluye. La diferencia es si cambia la respuesta.'}
+  ],
+  takeaway:'Antes de enviar, revisa: ¿el modelo sabe quién es, qué sé yo, qué quiero, en qué forma y con qué límites?'
+},
+{ id:'kaiwa', name:'KAIWA', jp:'会話', probe:'VN-2',
+  tema:'TEMA 8 · LA CONVERSACIÓN COMO MÉTODO', sub:'La primera respuesta es un borrador', time:'≈15 MIN',
+  radio:'CONTROL: La VN-2 grabó una conversación entera. Dice que el orden de los mensajes importa tanto como su contenido.',
+  bita:[
+   'La primera respuesta de un modelo es un borrador, no un veredicto. Quien copia la primera respuesta usa el LLM como máquina expendedora. Quien conversa lo usa como método.',
+   'El patrón que la sonda registró tiene cuatro fases:',
+   {chips:[
+     ['1 · VOLCADO','Tira todo lo que tienes: notas, dudas, datos sueltos. Sin orden, sin vergüenza.'],
+     ['2 · ESTRUCTURA','Pide ejes, mapas, esquemas. Todavía nada de redacción.'],
+     ['3 · ATAQUE','Busca grietas: qué falta, qué se contradice, qué no resiste.'],
+     ['4 · SÍNTESIS','Solo al final pides el texto que conecta todo.']
+   ]},
+   'Hay un efecto secundario que importa más que el truco: la estructura que emerge de la conversación suele terminar siendo <b>el índice de tu proyecto</b>. Conversar bien es, sin que lo parezca, diseñar la investigación.'
+  ],
+  exercise:{type:'order', prompt:'La grabación se corrompió y los 6 mensajes del investigador quedaron revueltos. Tócalos en el orden correcto del método.',
+   insight:'Volcar, estructurar, atacar, sintetizar. Si pides redacción en el mensaje dos, te saltas justo la parte donde se diseña el proyecto.',
+   items:[
+    {t:'«Te pego mis notas crudas de las entrevistas, tal como están. No respondas nada todavía: solo confirma que las recibiste.»'},
+    {t:'«¿Qué temas se repiten en esas notas? Lístalos sin interpretarlos.»'},
+    {t:'«Agrupa esos temas en tres ejes y dame un esquema de una línea por eje.»'},
+    {t:'«Toma el eje 2 y dime qué evidencia lo contradiría.»'},
+    {t:'«¿Qué pregunta de investigación NO puede responder este esquema?»'},
+    {t:'«Ahora sí: redacta un párrafo que conecte los tres ejes en una sola tesis discutible.»'}
+   ]},
+  quiz:[
+   {q:'Te llega una primera respuesta impecable. ¿Qué es?',
+    opts:['La versión final, lista para usar','Un borrador: materia prima para iterar','Señal de que tu prompt fue perfecto'], ok:1,
+    fb:'Aunque brille, es un punto de partida. El método vive en las vueltas que le das.'},
+   {q:'¿Por qué pedir estructura antes que redacción?',
+    opts:['Porque los modelos redactan mal','Para ahorrar tokens','Porque la estructura de la idea acaba siendo la del proyecto, y conviene atacarla antes de escribir'], ok:2,
+    fb:'Atacar un esquema de tres líneas cuesta minutos. Atacar veinte páginas redactadas, semanas.'}
+  ],
+  takeaway:'No pidas el texto: pide el esqueleto, sacúdelo y solo entonces pide el texto.'
+},
+{ id:'kasetsu', name:'KASETSU', jp:'仮説', probe:'VN-3',
+  tema:'TEMA 9 · SACUDIR LA HIPÓTESIS', sub:'Cuatro frentes de ataque antes de confiar', time:'≈15 MIN',
+  radio:'CONTROL: La VN-3 sometió una hipótesis a presión estructural. Hay grietas interesantes.',
+  bita:[
+   'Una hipótesis que solo ha recibido elogios no está probada: está sin estrenar. Y el modelo, por defecto, tiende a darte la razón. Hay que ordenarle lo contrario.',
+   'La sonda probó cuatro frentes de ataque:',
+   {chips:[
+     ['DEFENSOR DE LO CONTRARIO','«Construye el mejor caso de que mi hipótesis es falsa.» Que el rival tenga buen abogado.'],
+     ['METODÓLOGO','«¿Cómo medí? ¿Con qué muestra? ¿Qué confundo?» Ataca el método, no la idea.'],
+     ['EVIDENCIA EN CONTRA','«¿Qué estudios o datos la contradicen?» Buscarla a propósito, no esperar a que aparezca.'],
+     ['CASOS LÍMITE','«¿Dónde deja de funcionar?» Toda hipótesis tiene un borde; conviene saber dónde está.']
+   ]},
+   'Mejor todavía: mantén <b>dos o tres hipótesis vivas a la vez</b> y pide al modelo que las ataque parejo. No defiendes a tu favorita; comparas cuál resiste. La que sobreviva, esa se queda.'
+  ],
+  exercise:{type:'tag', prompt:'Hipótesis bajo presión. Asigna cada ataque de la sonda a su frente.',
+   hypo:'«Dormir menos de seis horas baja el rendimiento académico.»',
+   cats:['DEFENSOR DE LO CONTRARIO','METODÓLOGO','EVIDENCIA EN CONTRA','CASOS LÍMITE'],
+   items:[
+    {t:'«Defiende que la flecha va al revés: el mal rendimiento estresa, y el estrés quita sueño.»', ok:0, fb:'Causalidad inversa: el argumento favorito del defensor de lo contrario.'},
+    {t:'«¿"Rendimiento" medido cómo: promedio, exámenes, autorreporte?»', ok:1, fb:'Si la variable está mal medida, la hipótesis cuelga de un hilo.'},
+    {t:'«Busca estudios donde el efecto desaparece al controlar por trabajo nocturno.»', ok:2, fb:'Evidencia en contra buscada a propósito, con variable de confusión incluida.'},
+    {t:'«¿Aplica a quien duerme cinco horas pero toma siestas?»', ok:3, fb:'Un borde clásico: el caso que la formulación no contempló.'},
+    {t:'«Construye el mejor argumento de que seis horas bastan si el sueño es profundo.»', ok:0, fb:'No un argumento débil para tumbarlo fácil: el mejor posible.'},
+    {t:'«La muestra es de una sola carrera y un solo semestre: ¿qué invalida eso?»', ok:1, fb:'Generalizar desde una muestra angosta es un problema de método.'},
+    {t:'«¿Qué dataset público contradiría esta relación si la cruzo con él?»', ok:2, fb:'Salir a buscar el dato incómodo en lugar de esperar que no exista.'},
+    {t:'«¿Y en temporada de exámenes, cuando todos duermen mal?»', ok:3, fb:'Si el efecto se disuelve cuando todos comparten la condición, hay un límite que documentar.'}
+   ]},
+  quiz:[
+   {q:'¿Para qué mantener dos o tres hipótesis vivas a la vez?',
+    opts:['Para comparar cuál resiste los mismos ataques, sin enamorarte de una','Para escribir el marco teórico más rápido','Para que el modelo no se confunda'], ok:0,
+    fb:'El enemigo es el apego. Con varias en la mesa, la pregunta cambia de «¿tengo razón?» a «¿cuál resiste?».'},
+   {q:'Presentas tu hipótesis y el modelo te da la razón de inmediato. ¿Qué procede?',
+    opts:['Celebrar: la hipótesis es sólida','Cambiar de modelo','Pedirle el mejor caso en contra: por defecto tiende a complacer'], ok:2,
+    fb:'Su aplauso inicial vale poco. Su ataque bien dirigido vale mucho.'}
+  ],
+  takeaway:'Si nadie ha intentado romper tu hipótesis, todavía no sabes si está entera.'
+},
+{ id:'katayori', name:'KATAYORI', jp:'偏り', probe:'VN-4', moonOf:'kasetsu',
+  tema:'TEMA 10 · LOS SESGOS DEL QUE PREGUNTA', sub:'La luna que orbita toda hipótesis', time:'≈12 MIN',
+  radio:'CONTROL: Señal débil… la VN-4 no apunta al cielo. Apunta al observador.',
+  bita:[
+   'KATAYORI orbita KASETSU por una razón: el sesgo nunca anda lejos de la hipótesis. El modelo complace; tu sesgo entra por la forma de la pregunta y sale amplificado en la respuesta, con tono de objetividad.',
+   'Cuatro sospechosos habituales:',
+   {chips:[
+     ['CONFIRMACIÓN','Pedir solo evidencia que apoye lo que ya crees. El modelo, obediente, la encuentra.'],
+     ['ANCLAJE','La primera cifra que ves se vuelve tu referencia, aunque nadie la haya verificado.'],
+     ['AUTOMATIZACIÓN','«Lo dijo la máquina» como sustituto de abrir la fuente.'],
+     ['DISPONIBILIDAD','Lo reciente y lo viral parece más común de lo que es.']
+   ]},
+   'El antídoto cuesta una frase: <b>preguntar en neutro</b>. «Evalúa la evidencia a favor y en contra», en lugar de «¿verdad que…?». Mismo esfuerzo en ambas direcciones.'
+  ],
+  exercise:{type:'tag', prompt:'Diagnóstico de a bordo. ¿Qué sesgo operó en cada escena?',
+   cats:['CONFIRMACIÓN','ANCLAJE','AUTOMATIZACIÓN','DISPONIBILIDAD'],
+   items:[
+    {t:'Pides «dame 10 estudios que demuestren que mi intervención funciona» y ni uno en contra.', ok:0, fb:'La pregunta ya traía la respuesta. El modelo solo la decoró con referencias.'},
+    {t:'El primer modelo que consultaste dijo «40%», y desde entonces cualquier cifra distinta te parece rara.', ok:1, fb:'El ancla se instaló sin credenciales. Nadie verificó ese 40%.'},
+    {t:'El modelo citó un paper con DOI y lo pegaste en tu marco teórico sin abrirlo.', ok:2, fb:'Automatización pura: la fluidez de la máquina sustituyó tu verificación.'},
+    {t:'Tras ver tres noticias de fraude con IA en una semana, concluyes que la mayoría de las tesis ya se hacen con trampa.', ok:3, fb:'Tres titulares no son una tasa. Lo disponible se disfraza de frecuente.'},
+    {t:'Le preguntas «¿verdad que el grupo control estuvo mal diseñado?» y te responde que sí, con argumentos.', ok:0, fb:'Pregunta cargada, respuesta complaciente. En neutro: «evalúa el diseño del grupo control, fortalezas y debilidades».'},
+    {type:'mcq', t:'¿Cuál fraseo introduce menos sesgo?',
+     opts:['«¿Verdad que las redes sociales causan ansiedad?»','«Demuéstrame que las redes sociales causan ansiedad»','«Evalúa la evidencia a favor y en contra de que las redes sociales causen ansiedad»'], ok:2,
+     fb:'Las dos primeras ya eligieron bando. La tercera obliga al modelo a trabajar ambos lados con el mismo esfuerzo.'}
+   ]},
+  quiz:[
+   {q:'Aceptar la cita que dio el modelo sin abrir la fuente es sesgo de…',
+    opts:['Disponibilidad','Automatización','Anclaje'], ok:1,
+    fb:'Confiar en la máquina por ser máquina. La regla del Día 1 sigue vigente: toda cita, a la fuente.'},
+   {q:'El antídoto general contra meter tu sesgo en la pregunta es…',
+    opts:['Preguntar en neutro: evidencia a favor y en contra, mismo esfuerzo','No usar LLMs para temas delicados','Preguntar lo mismo dos veces'], ok:0,
+    fb:'El modelo amplifica el ángulo de tu pregunta. Quítale el ángulo y te devuelve el panorama.'}
+  ],
+  takeaway:'El modelo no corrige tus sesgos: los pule. Pregunta en neutro.'
+},
+{ id:'sekinin', name:'SEKININ', jp:'責任', probe:'VN-5',
+  tema:'TEMA 11 · VERIFICACIÓN, ÉTICA Y TRAZABILIDAD', sub:'El dial IN ↔ ON y lo que firmas con tu nombre', time:'≈15 MIN',
+  radio:'CONTROL: La VN-5 trae un dial extraño: IN ↔ ON. Dice que se calibra según lo que esté en juego.',
+  bita:[
+   'Dos posiciones frente a la máquina. <i>Human-in-the-loop</i>: apruebas cada paso antes de que el proceso avance. <i>Human-on-the-loop</i>: el proceso corre y tú supervisas, muestreas, corriges. Ninguna es «la buena»: dependen de una sola variable, la irreversibilidad.',
+   'Regla de la misión: <b>cuanto más irreversible y más público el resultado, más cerca del loop</b>. Explorar ideas tolera distancia. Lo que se publica con tu nombre, no.',
+   'Trazabilidad: declara el uso de IA según las normas de tu revista o facultad, registra modelo, versión, fecha y prompts clave, y asume la autoría. Lo que firmas es tuyo, con todo y errores: «lo dijo el modelo» no es defensa en ningún comité.',
+   'Una cosa más, que parece técnica y es ética: <b>dar contexto al modelo</b>. Sin contexto, sus respuestas son consejos de un desconocido que no sabe dónde estás parado. Dárselo es parte de usar la herramienta con seriedad.'
+  ],
+  exercise:{type:'spectrum', prompt:'Calibra el dial para cada operación. Piensa en qué tan irreversible y qué tan público es el resultado.',
+   left:'IN THE LOOP · apruebas cada paso', right:'ON THE LOOP · supervisas el proceso',
+   items:[
+    {t:'Lluvia de ideas para el marco teórico de tu tesis.', zone:[55,100], fb:'Exploratorio y reversible: deja correr al modelo y cosecha. Nada se publica todavía.'},
+    {t:'Clasificar 2,000 comentarios abiertos para un primer barrido.', zone:[50,95], fb:'Puede correr solo, con una condición: muestrea y verifica a mano una parte. Supervisar no es mirar de lejos.'},
+    {t:'Redactar la respuesta a los revisores de tu artículo.', zone:[0,35], fb:'Cada línea compromete tu nombre frente a colegas. Apruebas frase por frase.'},
+    {t:'Afirmaciones que irán en la versión publicada de la tesis.', zone:[0,25], fb:'Lo más irreversible de tu vida académica reciente. Verificación total, fuente por fuente.'}
+   ]},
+  quiz:[
+   {q:'Registro mínimo de trazabilidad de una sesión con IA:',
+    opts:['Modelo y versión, fecha, prompts clave y qué aceptaste o rechazaste','El número de tokens consumidos','Una captura de pantalla del chat'], ok:0,
+    fb:'Con eso, cualquiera (incluida tu yo del futuro) puede reconstruir qué hizo la máquina y qué decidiste tú.'},
+   {q:'Un párrafo de tu tesis lo redactó el modelo y tú lo firmaste. ¿De quién es la responsabilidad?',
+    opts:['Compartida con el proveedor del modelo','Del modelo, si citaste la versión','Tuya, completa: la firma asume la autoría'], ok:2,
+    fb:'La IA no comparece ante el comité. Tú sí.'}
+  ],
+  takeaway:'Calibra el dial por irreversibilidad, deja rastro y firma sabiendo que firmas.'
+},
+{ id:'monogatari', name:'MONOGATARI', jp:'物語', probe:'VN-6',
+  tema:'TEMA 12 · DATOS QUE CUENTAN ALGO', sub:'El gran diferenciador: dato → patrón → historia', time:'≈18 MIN',
+  radio:'CONTROL: La VN-6 encontró una tabla rota en la superficie. Dice que ahí empieza una historia.',
+  bita:[
+   'Todo lo anterior lo puede hacer cualquiera con acceso a un modelo. Tu ventaja está en otra parte: en los datos que solo tú tienes. Tus entrevistas, tus mediciones, tu archivo. El diferenciador es qué haces con ellos.',
+   'Para que un modelo trabaje tus datos, necesitan forma: <b>una observación por fila, una variable por columna, y un diccionario</b> que explique qué significa cada variable. Una tabla que tú entiendes «de memoria» es una tabla que el modelo malinterpreta con confianza.',
+   'Con la tabla sana, empieza la escalera:',
+   {chips:[
+     ['DATO','«El 62% reportó dormir mal.» Una observación verificable.'],
+     ['PATRÓN','«Y la cifra sube cada semestre desde 2023.» Una regularidad a través de los datos.'],
+     ['HISTORIA','«Proponemos que X lo explica, y esto importa porque Y.» Causa propuesta + por qué le importa a alguien.']
+   ]},
+   'Sin historia, la investigación no se cita ni se financia. El modelo ayuda en cada peldaño, pero la subida es tuya: la historia la firmas tú.'
+  ],
+  exercise:{type:'find', prompt:'La tabla que encontró la sonda tiene 4 celdas rotas. Tócalas y pulsa ESCANEAR.',
+   cols:['ID','PARTICIPANTE','HORAS','FECHA'],
+   rows:[
+    ['P01','Ana','7.5','03/03/2026'],
+    ['P02','Luis y Marta','6','04/03/2026'],
+    ['P03','Sofía','ocho','05/03/2026'],
+    ['P04','Jorge','7','6 de marzo'],
+    ['—','PROMEDIO','7.1','—']
+   ],
+   faults:[[1,1],[2,2],[3,3],[4,1]],
+   faultFb:[
+    '«Luis y Marta»: dos personas en una fila. Cada observación necesita fila propia.',
+    '«ocho»: número escrito como texto. Una columna, un solo tipo de dato.',
+    '«6 de marzo»: tercer formato de fecha en la misma columna. Elige uno y documenta cuál.',
+    'PROMEDIO: un cálculo no es una observación. Los resúmenes viven aparte de los datos crudos.'
+   ],
+   after:'Y falta lo invisible: el diccionario. ¿«HORAS» son entre semana o fin de semana? ¿Autorreporte o registro? Si no lo escribes tú, el modelo lo decidirá por ti, sin avisarte.'
+  },
+  quiz:[
+   {q:'«Una observación por fila» significa…',
+    opts:['Cada fila es un caso: una persona, una medición, un documento. Ni mezclas ni resúmenes','Que la tabla debe tener pocas filas','Que las filas van en orden alfabético'], ok:0,
+    fb:'Es el contrato básico de una tabla sana. Todo lo demás se construye encima.'},
+   {q:'Clasifica: «Las menciones de ansiedad suben cada semestre desde 2023».',
+    opts:['Dato','Patrón','Historia'], ok:1,
+    fb:'Es una regularidad a través de los datos. Le falta la causa propuesta y el porqué importa: eso ya sería historia.'},
+   {q:'¿Qué le falta a un patrón para volverse historia?',
+    opts:['Más decimales','Una gráfica','Causa propuesta y por qué le importa a alguien'], ok:2,
+    fb:'La historia responde dos preguntas que el patrón no: ¿por qué pasa? ¿y a quién le cambia algo saberlo?'}
+  ],
+  takeaway:'Tabla sana, escalera completa: dato, patrón, historia. La historia la firmas tú.'
+},
+{ id:'mirai', name:'MIRAI', jp:'未来', probe:'VN-7', gate:true,
+  tema:'CIERRE · LO QUE VIENE', sub:'Claridad de visión y datos propios', time:'≈12 MIN',
+  radio:'CONTROL: La puerta responde. Última transmisión entrante…',
+  lockedRadio:'CONTROL: La puerta no responde. Faltan sondas por recuperar en el sistema.',
+  bita:[
+   {quote:'«Vibe coding is the new product management. Training and tuning models is the new coding.»', cite:'NAVAL RAVIKANT · 2026'},
+   'Traducción para investigadores: la ejecución se abarata; <b>la claridad de visión se encarece</b>. Saber exactamente qué pregunta haces, por qué importa y qué responderías si te dicen «¿y qué?»: esa es la habilidad escasa. La máquina no la trae.',
+   'Y tus <b>datos propios son tu superpoder</b>, porque son lo único que el modelo no tiene de fábrica. Lo que mediste, grabaste y archivaste tú: ahí no compites con nadie que solo tenga acceso a un chat.',
+   'El método completo viaja contigo:'
+  ],
+  recap:[
+   ['MEIREI 命令','Cinco piezas, cero lastre. La atención es un presupuesto.'],
+   ['KAIWA 会話','Primera respuesta = borrador. Volcado, estructura, ataque, síntesis.'],
+   ['KASETSU 仮説','Cuatro frentes contra toda hipótesis. Varias vivas a la vez.'],
+   ['KATAYORI 偏り','El sesgo entra por tu pregunta. Pregunta en neutro.'],
+   ['SEKININ 責任','Dial IN↔ON según irreversibilidad. Deja rastro. Firma sabiendo.'],
+   ['MONOGATARI 物語','Una observación por fila. Dato, patrón, historia.']
+  ],
+  cert:[
+   {q:'Mañana un modelo te entrega un borrador perfecto a la primera. ¿Qué haces?',
+    opts:['Lo entrego: para eso es la herramienta','Lo trato como volcado inicial y empiezo a iterar y atacar','Le pido que lo reescriba más largo'], ok:1,
+    fb:'Certificado: la primera respuesta es materia prima, hasta cuando deslumbra.'},
+   {q:'Tu hipótesis sobrevivió a los cuatro frentes. ¿Qué significa?',
+    opts:['Que es verdadera','Que el modelo no supo atacarla','Que por ahora resiste: lista para diseñar el estudio, no para darse por probada'], ok:2,
+    fb:'Sobrevivir al ataque no es ser cierta. Es haberse ganado el derecho a ser puesta a prueba con datos.'},
+   {q:'¿Qué acompaña al manuscrito en tu repositorio?',
+    opts:['Nada: el texto final habla por sí mismo','El registro de modelo, versión, fechas y prompts clave, más la declaración de uso','Solo la bibliografía'], ok:1,
+    fb:'Trazabilidad completa. Tu yo del futuro y cualquier revisor podrán reconstruir qué hizo la máquina y qué decidiste tú.'}
+  ]
+}
+];
+
+const CHECKLIST_MD=`# CHECKLIST TANSA · LLMs para investigación académica
+## Taller de Raúl Gabino · Días 1 y 2
+
+### Antes de pedir (el prompt)
+- [ ] Rol, contexto, tarea, formato, restricciones: las cinco piezas presentes
+- [ ] Lo importante al inicio; repetido al final si el prompt es largo
+- [ ] Cero lastre: cada token irrelevante diluye la atención
+
+### Durante (la conversación)
+- [ ] Tratar la primera respuesta como borrador
+- [ ] Volcado -> estructura -> ataque -> síntesis
+- [ ] Hipótesis sacudida desde 4 frentes: defensor de lo contrario · metodólogo · evidencia en contra · casos límite
+- [ ] Varias hipótesis vivas a la vez, atacadas parejo
+- [ ] Revisar mis sesgos: confirmación · anclaje · automatización · disponibilidad
+- [ ] Preguntar en neutro: evidencia a favor y en contra, mismo esfuerzo
+
+### Después (verificación y ética)
+- [ ] Toda cita verificada en la fuente original
+- [ ] Posición en el loop según irreversibilidad (publicable = in the loop)
+- [ ] Registro: modelo + versión, fecha, prompts clave, qué acepté y qué rechacé
+- [ ] Uso de IA declarado según las normas de mi revista o facultad
+- [ ] La autoría es mía: lo que firmo, lo respondo yo
+
+### Los datos (el diferenciador)
+- [ ] Una observación por fila, una variable por columna
+- [ ] Diccionario de variables escrito
+- [ ] Subir la escalera: dato -> patrón -> historia
+- [ ] La historia propone causa y dice por qué importa (y a quién)
+
+### Del Día 1, siempre encendido
+- [ ] El modelo optimiza plausibilidad, no verdad
+- [ ] Combinar modelos según la tarea
+- [ ] Elegir modelo es elegir sesgos (andamiaje incluido)
+
+---
+"Vibe coding is the new product management. Training and tuning models is the new coding." — Naval Ravikant, 2026
+Traducción: la claridad de visión es la habilidad escasa; tus datos propios, tu superpoder.
+`;
+
+/* ================= AUDIO =================
+   Música: secuenciador WebAudio a 96 BPM. 16avo = 0.15625 s.
+   1152 pasos × 0.15625 = 180.000 s exactos; el contador es modular,
+   así que el loop no tiene costura: el paso 1152 ES el paso 0.        */
+const AU={on:false,muted:false,ctx:null};
+const mtof=m=>440*Math.pow(2,(m-69)/12);
+AU.init=function(){
+  if(AU.on)return;
+  try{
+    const C=new (window.AudioContext||window.webkitAudioContext)();
+    AU.ctx=C;
+    const comp=C.createDynamicsCompressor();
+    comp.threshold.value=-18;comp.ratio.value=6;
+    AU.master=C.createGain();AU.master.gain.value=1;
+    AU.master.connect(comp);comp.connect(C.destination);
+    AU.mus=C.createGain();AU.mus.gain.value=.9;AU.mus.connect(AU.master);
+    AU.sfx=C.createGain();AU.sfx.gain.value=1;AU.sfx.connect(AU.master);
+    // buffer de ruido compartido
+    const len=2*C.sampleRate,buf=C.createBuffer(1,len,C.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+    AU.noise=buf;
+    // empuje: ruido en loop con ganancia controlada por el acelerador
+    const tn=C.createBufferSource();tn.buffer=buf;tn.loop=true;
+    const tf=C.createBiquadFilter();tf.type='lowpass';tf.frequency.value=220;tf.Q.value=.7;
+    AU.thrG=C.createGain();AU.thrG.gain.value=0;
+    tn.connect(tf);tf.connect(AU.thrG);AU.thrG.connect(AU.sfx);tn.start();
+    const sub=C.createOscillator();sub.type='sine';sub.frequency.value=44;
+    AU.subG=C.createGain();AU.subG.gain.value=0;
+    sub.connect(AU.subG);AU.subG.connect(AU.sfx);sub.start();
+    // eco compartido (corchea punteada = 0.46875 s)
+    AU.dly=C.createDelay(1);AU.dly.delayTime.value=.46875;
+    const dfb=C.createGain();dfb.gain.value=.3;
+    const dlp=C.createBiquadFilter();dlp.type='lowpass';dlp.frequency.value=2400;
+    AU.dly.connect(dlp);dlp.connect(dfb);dfb.connect(AU.dly);
+    const dout=C.createGain();dout.gain.value=.55;dlp.connect(dout);dout.connect(AU.mus);
+    AU.on=true;
+    AU.t0=C.currentTime+.1;AU.step=0;
+    AU.tick=setInterval(AU.sched,80);
+  }catch(e){console.error('audio',e)}
+};
+AU.setThrust=function(x){if(!AU.on)return;const t=AU.ctx.currentTime;
+  AU.thrG.gain.setTargetAtTime(x*.26,t,.07);AU.subG.gain.setTargetAtTime(x*.1,t,.07)};
+AU.duck=function(d){if(!AU.on)return;AU.mus.gain.setTargetAtTime(d?.38:.9,AU.ctx.currentTime,.3)};
+AU.toggleMute=function(){if(!AU.on)return true;AU.muted=!AU.muted;
+  AU.master.gain.setTargetAtTime(AU.muted?0:1,AU.ctx.currentTime,.05);return AU.muted};
+
+/* --- voces --- */
+function tone(at,f,dur,type,vol,out,fLP){
+  const C=AU.ctx,o=C.createOscillator(),g=C.createGain();
+  o.type=type;o.frequency.value=f;
+  let last=g;
+  if(fLP){const fl=C.createBiquadFilter();fl.type='lowpass';fl.frequency.value=fLP;o.connect(fl);fl.connect(g)}
+  else o.connect(g);
+  g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(vol,at+.012);
+  g.gain.exponentialRampToValueAtTime(.0001,at+dur);
+  last.connect(out||AU.sfx);o.start(at);o.stop(at+dur+.05);
+  return o;
+}
+function noiseHit(at,dur,vol,type,freq,q,out){
+  const C=AU.ctx,s=C.createBufferSource();s.buffer=AU.noise;
+  const f=C.createBiquadFilter();f.type=type;f.frequency.value=freq;f.Q.value=q||1;
+  const g=C.createGain();g.gain.setValueAtTime(vol,at);
+  g.gain.exponentialRampToValueAtTime(.0001,at+dur);
+  s.connect(f);f.connect(g);g.connect(out||AU.sfx);s.start(at);s.stop(at+dur+.05);
+}
+
+/* --- composición: 王道進行 (royal road) y puente --- */
+const CH_RR=[[65,69,72,76],[67,71,74,77],[64,67,71,74],[69,72,76,79]];      // F△7 G7 Em7 Am7
+const CH_RES=[[65,69,72,76],[67,71,74,77],[60,64,67,71],[60,64,67,71]];     // F△7 G7 C△7 C△7
+const CH_BR=[[62,65,69,72],[67,71,74,77],[60,64,67,71],[69,73,76,79]];      // Dm7 G7 C△7 A7
+const ROOT_RR=[41,43,40,45], ROOT_RES=[41,43,36,36], ROOT_BR=[38,43,36,45];
+const MOT_A=[76,79,81,79,76,74,72,74], MOT_B=[74,77,81,79,76,72,69,71];
+const ARR=[ // 18 ciclos de 4 compases = 72 compases = 180 s
+ {c:0,k:1,a:0,s:0,l:0},{c:0,k:1,a:1,s:0,l:0},{c:0,k:1,a:1,s:1,l:0},{c:0,k:1,a:1,s:1,l:1},
+ {c:1,k:1,a:1,s:1,l:1},{c:2,k:1,a:0,s:0,l:0},{c:2,k:1,a:1,s:1,l:2},{c:0,k:1,a:1,s:1,l:0},
+ {c:0,k:1,a:1,s:1,l:1},{c:1,k:1,a:1,s:1,l:0},{c:0,k:0,a:0,s:0,l:0},{c:0,k:1,a:1,s:0,l:0},
+ {c:0,k:1,a:1,s:1,l:1},{c:2,k:1,a:1,s:1,l:2},{c:0,k:1,a:1,s:1,l:1},{c:1,k:1,a:1,s:1,l:1},
+ {c:0,k:1,a:1,s:1,l:0},{c:1,k:1,a:0,s:0,l:0}
+];
+const CHS=[CH_RR,CH_RES,CH_BR], ROOTS=[ROOT_RR,ROOT_RES,ROOT_BR];
+const STEP=0.15625, CYCLE=64; // 16 pasos/compás × 4 compases
+const BASS_PAT=[[0,0],[6,0],[8,7],[11,12],[14,7]];
+const ARP_PAT=[0,3,6,8,11,14];
+AU.sched=function(){
+  if(!AU.on)return;
+  const C=AU.ctx,ahead=C.currentTime+.22;
+  while(AU.t0+AU.step*STEP<ahead){
+    const s=AU.step,at=AU.t0+s*STEP,sc=s%1152;
+    const cyc=ARR[Math.floor(sc/CYCLE)%18],pos=sc%CYCLE,bar=Math.floor(pos/16),st=pos%16;
+    const chord=CHS[cyc.c][bar],root=ROOTS[cyc.c][bar];
+    // batería
+    if(cyc.k&&(st===0||st===8)){tone(at,108,.13,'sine',.5,AU.mus);noiseHit(at,.03,.12,'lowpass',900,1,AU.mus)}
+    if(cyc.k&&st===14&&bar===3)tone(at,95,.1,'sine',.35,AU.mus); // fill suave
+    if(st%2===0)noiseHit(at,.035,st%4===0?.13:.07,'highpass',7800,1,AU.mus);
+    if(cyc.s&&(st===4||st===12)){noiseHit(at,.11,.16,'bandpass',1850,1.2,AU.mus);tone(at,190,.06,'triangle',.1,AU.mus)}
+    // bajo
+    for(const[bs,off]of BASS_PAT)if(st===bs)tone(at,mtof(root+off-12+12),.26,'sawtooth',.17,AU.mus,520);
+    // pad: un acorde por compás
+    if(st===0)for(let i=0;i<4;i++){
+      for(const det of[-4,4]){
+        const o=C.createOscillator(),g=C.createGain(),fl=C.createBiquadFilter();
+        o.type='sawtooth';o.frequency.value=mtof(chord[i]);o.detune.value=det;
+        fl.type='lowpass';fl.frequency.value=1350;
+        g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(.028,at+.5);
+        g.gain.setValueAtTime(.028,at+1.6);g.gain.linearRampToValueAtTime(0,at+2.45);
+        o.connect(fl);fl.connect(g);g.connect(AU.mus);o.start(at);o.stop(at+2.6);
+      }}
+    // arpegio: patrón 3-3-2 sobre las notas del acorde, con eco
+    if(cyc.a){const ai=ARP_PAT.indexOf(st);if(ai>=0){
+      const n=chord[ai%4]+(ai>=4?12:0);
+      const o=tone(at,mtof(n),.16,'square',.05,AU.mus,3400);
+      const sg=C.createGain();sg.gain.value=.5;o.connect(sg);sg.connect(AU.dly);
+    }}
+    // motivo principal: una nota por medio compás
+    if(cyc.l&&st%8===0){
+      const mot=cyc.l===2?MOT_B:MOT_A,n=mot[bar*2+st/8];
+      const o=tone(at,mtof(n),.55,'triangle',.11,AU.mus,5200);
+      tone(at,mtof(n)*2.001,.4,'sine',.025,AU.mus);
+      const sg=C.createGain();sg.gain.value=.7;o.connect(sg);sg.connect(AU.dly);
+    }
+    AU.step++;
+  }
+};
+
+/* --- SFX --- */
+const SFX={
+ ui(){if(AU.on)tone(AU.ctx.currentTime,660,.05,'square',.1)},
+ sel(){if(AU.on)tone(AU.ctx.currentTime,880,.06,'square',.12)},
+ good(){if(!AU.on)return;const t=AU.ctx.currentTime;
+   tone(t,523.3,.18,'sine',.22);tone(t+.09,659.3,.3,'sine',.22);tone(t+.09,1318.5,.2,'sine',.06)},
+ bad(){if(!AU.on)return;const t=AU.ctx.currentTime;
+   tone(t,165,.16,'square',.1,null,800);tone(t+.02,160,.18,'square',.07,null,700)},
+ rcs(){if(AU.on)noiseHit(AU.ctx.currentTime,.05,.07,'highpass',1200,1)},
+ pickup(){if(!AU.on)return;const t=AU.ctx.currentTime;
+   [659.3,784,988,1318.5].forEach((f,i)=>{tone(t+i*.08,f,.4,'sine',.2);tone(t+i*.08,f*2,.25,'sine',.05)});
+   noiseHit(t,.5,.05,'highpass',9000,1)},
+ capture(){if(!AU.on)return;const t=AU.ctx.currentTime,C=AU.ctx;
+   const s=C.createBufferSource();s.buffer=AU.noise;
+   const f=C.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(1400,t);
+   f.frequency.exponentialRampToValueAtTime(160,t+.7);
+   const g=C.createGain();g.gain.setValueAtTime(.16,t);g.gain.exponentialRampToValueAtTime(.0001,t+.8);
+   s.connect(f);f.connect(g);g.connect(AU.sfx);s.start(t);s.stop(t+.9);
+   [0,.14,.28].forEach(d=>tone(t+.25+d,980,.07,'sine',.12))},
+ radio(){if(!AU.on)return;const t=AU.ctx.currentTime;
+   noiseHit(t,.1,.06,'bandpass',2400,2);tone(t+.1,1200,.05,'sine',.08);tone(t+.17,1500,.05,'sine',.08)},
+ open(){if(!AU.on)return;const t=AU.ctx.currentTime;
+   noiseHit(t,.12,.07,'bandpass',2600,2);tone(t+.05,1244,.09,'sine',.1);tone(t+.14,1864,.12,'sine',.1)},
+ close(){if(!AU.on)return;const t=AU.ctx.currentTime;
+   tone(t,1244,.08,'sine',.09);tone(t+.07,830,.1,'sine',.09)},
+ clank(){if(!AU.on)return;const t=AU.ctx.currentTime;
+   noiseHit(t,.07,.18,'bandpass',320,2);tone(t,180,.12,'sine',.16)},
+ alarm(){if(!AU.on)return;const t=AU.ctx.currentTime;
+   tone(t,440,.12,'square',.07,null,900);tone(t+.16,440,.12,'square',.07,null,900)},
+ launch(){if(!AU.on)return;const t=AU.ctx.currentTime,C=AU.ctx;
+   const s=C.createBufferSource();s.buffer=AU.noise;
+   const f=C.createBiquadFilter();f.type='lowpass';f.frequency.setValueAtTime(120,t);
+   f.frequency.exponentialRampToValueAtTime(900,t+1.6);
+   const g=C.createGain();g.gain.setValueAtTime(.001,t);g.gain.exponentialRampToValueAtTime(.3,t+.5);
+   g.gain.exponentialRampToValueAtTime(.0001,t+2.4);
+   s.connect(f);f.connect(g);g.connect(AU.sfx);s.start(t);s.stop(t+2.5);
+   const o=C.createOscillator(),og=C.createGain();o.type='sine';
+   o.frequency.setValueAtTime(50,t);o.frequency.exponentialRampToValueAtTime(190,t+2);
+   og.gain.setValueAtTime(.14,t);og.gain.exponentialRampToValueAtTime(.0001,t+2.2);
+   o.connect(og);og.connect(AU.sfx);o.start(t);o.stop(t+2.3)},
+ beep(n){if(!AU.on)return;tone(AU.ctx.currentTime,n?1100:740,.09,'sine',.14)},
+ stamp(){if(!AU.on)return;const t=AU.ctx.currentTime;
+   noiseHit(t,.06,.14,'bandpass',500,2);tone(t+.02,392,.16,'triangle',.16);tone(t+.1,523.3,.22,'triangle',.14)}
+};
+
+/* ================= SISTEMA KENKYŪ ================= */
+const SQ=.82; // inclinación del plano orbital (cámara 2D sobre mundo 3D)
+const SUN={id:'sun',name:'KENKYŪ',jp:'研究',style:'sun',r:130,x:0,y:0,vx:0,vy:0,mu:8e6,sun:true};
+const BODIES=[SUN];
+const BODY={};
+function addBody(b){BODIES.push(b);BODY[b.id]=b}
+addBody({id:'kotoba',style:'station',name:'ESTACIÓN KOTOBA',jp:'言葉',r:26,R:700,w:408/Math.pow(700,1.5),ang:0.6,mu:52000,soi:170});
+addBody({id:'meirei',style:'rock',name:'MEIREI',jp:'命令',r:46,R:1080,w:408/Math.pow(1080,1.5),ang:1.05,mu:9000*46,soi:300,
+  c:['#ff9a6a','#c14a28','#5a1d12'],atmo:'rgba(255,120,70,.5)'});
+addBody({id:'kaiwa',style:'clouds',name:'KAIWA',jp:'会話',r:58,R:1560,w:408/Math.pow(1560,1.5),ang:2.5,mu:9000*58,soi:340,
+  c:['#9ff0e4','#2e8f96','#123f49'],atmo:'rgba(110,231,255,.55)'});
+addBody({id:'kasetsu',style:'gas',name:'KASETSU',jp:'仮説',r:74,R:2120,w:408/Math.pow(2120,1.5),ang:4.1,mu:9000*74,soi:430,
+  c:['#ffd9a0','#c97f35','#6b3a14'],atmo:'rgba(255,190,110,.45)'});
+addBody({id:'katayori',style:'moonb',name:'KATAYORI',jp:'偏り',r:21,parent:'kasetsu',Rm:215,wm:.16,angm:1.2,mu:9000*21,soi:120,
+  c:['#d8cfee','#7d749e','#3a3550']});
+addBody({id:'sekinin',style:'ice',name:'SEKININ',jp:'責任',r:50,R:2700,w:408/Math.pow(2700,1.5),ang:5.4,mu:9000*50,soi:330,
+  c:['#f0f8ff','#9cc8e8','#33648e'],atmo:'rgba(180,220,255,.5)'});
+addBody({id:'monogatari',style:'data',name:'MONOGATARI',jp:'物語',r:62,R:3300,w:408/Math.pow(3300,1.5),ang:0.2,mu:9000*62,soi:360,
+  c:['#e2f4b0','#5f9e4f','#1f4a2a'],atmo:'rgba(170,255,150,.4)'});
+addBody({id:'mirai',style:'gate',name:'MIRAI',jp:'未来',r:46,R:3950,w:408/Math.pow(3950,1.5),ang:3.0,mu:9000*46,soi:330,
+  c:['#e2d2ff','#7e5bc8','#2a1d4e'],atmo:'rgba(180,140,255,.55)'});
+const OUTER=4400;
+BODIES.forEach(b=>{if(!b.sun){b.x=0;b.y=0;b.vx=0;b.vy=0;b.probeAng=Math.random()*TAU;b.spin=Math.random()*TAU}});
+function tickBodies(dt,t){
+  for(const b of BODIES){
+    if(b.sun)continue;
+    if(b.parent){
+      const p=BODY[b.parent];b.angm+=b.wm*dt;
+      b.x=p.x+Math.cos(b.angm)*b.Rm;b.y=p.y+Math.sin(b.angm)*b.Rm;
+      b.vx=p.vx-Math.sin(b.angm)*b.wm*b.Rm;b.vy=p.vy+Math.cos(b.angm)*b.wm*b.Rm;
+    }else{
+      b.ang+=b.w*dt;
+      b.x=Math.cos(b.ang)*b.R;b.y=Math.sin(b.ang)*b.R;
+      b.vx=-Math.sin(b.ang)*b.w*b.R;b.vy=Math.cos(b.ang)*b.w*b.R;
+    }
+    b.probeAng+=dt*.8;b.spin+=dt*.04;
+  }
+}
+tickBodies(0,0);
+
+/* ----- estado de misión ----- */
+const ORDER=['kotoba','meirei','kaiwa','kasetsu','katayori','sekinin','monogatari','mirai'];
+const MS={pf:false,col:{},arch:{},okFirst:0,tries:0,time:0};
+function saveMS(){try{localStorage.setItem('tansa02',JSON.stringify(MS))}catch(e){}}
+function loadMS(){try{const s=localStorage.getItem('tansa02');if(s){const o=JSON.parse(s);Object.assign(MS,o);return true}}catch(e){}return false}
+const hasSave=loadMS();
+function stopById(id){return STOPS.find(s=>s.id===id)}
+function probesCollected(){return ORDER.slice(1).filter(id=>MS.col[id]).length}
+function nextObjective(){
+  if(!MS.pf)return 'kotoba';
+  for(const id of ORDER.slice(1,7))if(!MS.col[id])return id;
+  return MS.col.mirai?null:'mirai';
+}
+function miraiLocked(){return probesCollected()<6}
+
+/* ================= NAVE TSUBAME-II ================= */
+const SHIP={x:0,y:0,vx:0,vy:0,ang:0,thr:0,rot:0,state:'docked',ob:null,fb:null,trail:[],trailT:0};
+function dockAtStation(){const k=BODY.kotoba;SHIP.state='docked';
+  SHIP.x=k.x;SHIP.y=k.y-k.r-14;SHIP.ang=-PI/2}
+function orbitAt(id,altF){const b=BODY[id];SHIP.state='orbit';
+  SHIP.ob={body:b,alt:b.r*(altF||1.6),ang:Math.random()*TAU,dir:1}}
+function dominant(){
+  let best=SUN;
+  for(const b of BODIES){if(b.sun||!b.soi)continue;
+    if(hyp(SHIP.x-b.x,SHIP.y-b.y)<b.soi){if(best===SUN||b.soi<best.soi)best=b}}
+  return best;
+}
+function vCirc(b,d){return Math.sqrt(b.mu/Math.max(d,1))}
+const INPUT={left:false,right:false,thrust:false,aim:null};
+let AUTO=null; // {target, phase}
+let slowmo=1, shake=0, targetId=null;
+
+function engageAuto(id){
+  const b=BODY[id];if(!b)return;
+  targetId=id;AUTO={target:b,phase:'cruise'};
+  if(SHIP.state==='orbit'||SHIP.state==='docked'){
+    // soltar amarre con velocidad orbital actual
+    if(SHIP.ob){const o=SHIP.ob,tb=o.body,vc=vCirc(tb,o.alt);
+      SHIP.vx=tb.vx-Math.sin(o.ang)*vc*o.dir;SHIP.vy=tb.vy+Math.cos(o.ang)*vc*o.dir}
+    else{SHIP.vx=BODY.kotoba.vx;SHIP.vy=BODY.kotoba.vy}
+    SHIP.state='free';SHIP.ob=null;
+  }
+  $('#autoBtn').classList.add('on');SFX.sel();
+  toast('PILOTO AUTOMÁTICO ▸ '+b.name,'cy');
+}
+function cancelAuto(){if(AUTO){AUTO=null;$('#autoBtn').classList.remove('on')}}
+
+function physStep(dt){
+  if(SHIP.state==='docked'){const k=BODY.kotoba;SHIP.x=k.x;SHIP.y=k.y-k.r-14;return}
+  if(SHIP.state==='orbit'){
+    const o=SHIP.ob,b=o.body,vc=vCirc(b,o.alt);
+    o.ang+=o.dir*vc/o.alt*dt;
+    SHIP.x=b.x+Math.cos(o.ang)*o.alt;SHIP.y=b.y+Math.sin(o.ang)*o.alt;
+    SHIP.vx=b.vx-Math.sin(o.ang)*vc*o.dir;SHIP.vy=b.vy+Math.cos(o.ang)*vc*o.dir;
+    SHIP.ang=o.ang+o.dir*PI/2;
+    if(INPUT.thrust||INPUT.left||INPUT.right||INPUT.aim){SHIP.state='free';SHIP.ob=null;cancelAuto()}
+    return;
+  }
+  if(SHIP.state==='flyby'){flybyStep(dt);return}
+  // ---- vuelo libre / auto ----
+  let ax=0,ay=0;
+  const dom=dominant();
+  {const dx=dom.x-SHIP.x,dy=dom.y-SHIP.y,d=Math.max(hyp(dx,dy),dom.r*1.05);
+   const g=dom.mu/(d*d);ax+=g*dx/d;ay+=g*dy/d}
+  if(AUTO){
+    const b=AUTO.target,dx=b.x-SHIP.x,dy=b.y-SHIP.y,d=hyp(dx,dy);
+    let dvx,dvy;
+    if(AUTO.phase==='cruise'){
+      const sp=clamp(d*.55,60,880);
+      dvx=b.vx+dx/d*sp;dvy=b.vy+dy/d*sp;
+      if(d<b.soi*.85)AUTO.phase='circ';
+    }else{
+      const alt=b.r*1.55,rx=-dx/d,ry=-dy/d; // r̂ desde el cuerpo hacia la nave
+      const rvx=SHIP.vx-b.vx,rvy=SHIP.vy-b.vy;
+      let dir=Math.sign(rx*rvy-ry*rvx)||1;
+      const tx=-ry*dir,ty=rx*dir,vc=vCirc(b,alt);
+      const rad=clamp((alt-d)*1.1,-150,150);
+      dvx=b.vx+tx*vc+rx*rad;dvy=b.vy+ty*vc+ry*rad;
+      const radial=rvx*rx+rvy*ry;
+      if(Math.abs(d-alt)<15&&Math.abs(radial)<28)return arriveAt(b,dir);
+    }
+    let sx=(dvx-SHIP.vx)*1.8,sy=(dvy-SHIP.vy)*1.8;
+    const sm=hyp(sx,sy);if(sm>460){sx*=460/sm;sy*=460/sm}
+    ax+=sx;ay+=sy;
+    if(sm>40){const ta=Math.atan2(sy,sx);let dA=ta-SHIP.ang;
+      while(dA>PI)dA-=TAU;while(dA<-PI)dA+=TAU;SHIP.ang+=dA*Math.min(1,dt*6)}
+    SHIP.thr=clamp(sm/300,0,1);
+  }else{
+    let manual=false;
+    if(INPUT.aim){
+      // vuelo con un dedo: la nave persigue tu dedo y frena sola al llegar
+      const aw=s2w(INPUT.aim.x,INPUT.aim.y);
+      const ddx=aw[0]-SHIP.x,ddy=aw[1]-SHIP.y,dd=Math.max(hyp(ddx,ddy),.001);
+      const sp=clamp(dd*.9,0,720);
+      const dvx=(dom.vx||0)+ddx/dd*sp,dvy=(dom.vy||0)+ddy/dd*sp;
+      let sx=(dvx-SHIP.vx)*1.7,sy=(dvy-SHIP.vy)*1.7;
+      const sm=hyp(sx,sy);if(sm>390){sx*=390/sm;sy*=390/sm}
+      ax+=sx;ay+=sy;
+      if(sm>30){const ta=Math.atan2(sy,sx);let dA=ta-SHIP.ang;
+        while(dA>PI)dA-=TAU;while(dA<-PI)dA+=TAU;SHIP.ang+=dA*Math.min(1,dt*5.5)}
+      SHIP.thr=clamp(sm/260,0,1);
+      manual=true;
+    }else{
+      if(INPUT.left){SHIP.ang-=3.1*dt;manual=true}
+      if(INPUT.right){SHIP.ang+=3.1*dt;manual=true}
+      SHIP.thr=INPUT.thrust?1:0;
+      if(INPUT.thrust){manual=true;ax+=Math.cos(SHIP.ang)*265;ay+=Math.sin(SHIP.ang)*265}
+    }
+    if(!manual){
+      // asistente de deriva: frena el exceso y acomoda la nave en órbita local
+      SHIP.thr=0;
+      const dx=SHIP.x-dom.x,dy=SHIP.y-dom.y,d=Math.max(hyp(dx,dy),1);
+      const rx=dx/d,ry=dy/d;
+      const rvx=SHIP.vx-(dom.vx||0),rvy=SHIP.vy-(dom.vy||0),rs=hyp(rvx,rvy);
+      const vc=vCirc(dom,d);
+      if(rs>vc*1.25){ // freno del exceso de velocidad
+        const ns=vc*1.25+(rs-vc*1.25)*Math.exp(-.55*dt),sc=ns/Math.max(rs,.001);
+        SHIP.vx=(dom.vx||0)+rvx*sc;SHIP.vy=(dom.vy||0)+rvy*sc;
+      }
+      if(rs<vc*2.6){ // circularización suave alrededor del cuerpo dominante
+        const dir=Math.sign(rx*rvy-ry*rvx)||1;
+        const dst=stopById(dom.id);
+        const pend=dst&&dst.probe&&!MS.col[dom.id];
+        // con sonda pendiente, el asistente desciende solo a órbita baja
+        const dT=pend?dom.r*1.7:clamp(d,dom.r*1.55,dom.soi?dom.soi*.7:OUTER);
+        const rad=clamp((dT-d)*.6,-80,80);
+        const dvx=(dom.vx||0)-ry*dir*vc+rx*rad;
+        const dvy=(dom.vy||0)+rx*dir*vc+ry*rad;
+        const k=Math.min(1,dt*.9);
+        SHIP.vx+=(dvx-SHIP.vx)*k;SHIP.vy+=(dvy-SHIP.vy)*k;
+      }
+    }
+  }
+  SHIP.vx+=ax*dt;SHIP.vy+=ay*dt;
+  const v=hyp(SHIP.vx,SHIP.vy);if(v>980){SHIP.vx*=980/v;SHIP.vy*=980/v}
+  SHIP.x+=SHIP.vx*dt;SHIP.y+=SHIP.vy*dt;
+  // límites suaves
+  const dSun=hyp(SHIP.x,SHIP.y);
+  if(dSun<SUN.r*1.7){const f=420/dSun;SHIP.vx+=SHIP.x*f*dt;SHIP.vy+=SHIP.y*f*dt;warn('CONTROL: Temperatura de casco crítica. Aléjate de Kenkyū.')}
+  if(dSun>OUTER*1.18){SHIP.vx-=SHIP.x/dSun*180*dt;SHIP.vy-=SHIP.y/dSun*180*dt;warn('CONTROL: Te alejas del sistema. Las sondas están adentro.')}
+  // colisión suave: la nave no atraviesa planetas
+  for(const b of BODIES){
+    if(b.sun)continue;
+    const dx=SHIP.x-b.x,dy=SHIP.y-b.y,d=hyp(dx,dy);
+    if(d<b.r*1.08){
+      const nx=dx/d,ny=dy/d;
+      SHIP.x=b.x+nx*b.r*1.08;SHIP.y=b.y+ny*b.r*1.08;
+      const rvx=SHIP.vx-b.vx,rvy=SHIP.vy-b.vy,dot=rvx*nx+rvy*ny;
+      if(dot<0){SHIP.vx-=nx*dot*1.3;SHIP.vy-=ny*dot*1.3;SHIP.vx=b.vx+(SHIP.vx-b.vx)*.4;SHIP.vy=b.vy+(SHIP.vy-b.vy)*.4;
+        shake=5;SFX.clank();warn('CONTROL: Contacto con la atmósfera. Sube la nariz.')}
+    }
+  }
+  // captura manual en órbita baja (generosa con sondas pendientes)
+  if(!AUTO)for(const b of BODIES){
+    if(b.sun||!b.soi)continue;
+    const st=stopById(b.id);
+    const pending=st&&st.probe&&!MS.col[b.id];
+    if(!pending&&INPUT.aim)continue; // no interrumpir el vuelo sobre cuerpos ya visitados
+    const d=hyp(SHIP.x-b.x,SHIP.y-b.y);
+    const lo=b.r*1.02,hi=pending?b.r*2.7:b.r*1.95;
+    if(d<hi&&d>lo){
+      const rvx=SHIP.vx-b.vx,rvy=SHIP.vy-b.vy;
+      if(hyp(rvx,rvy)<vCirc(b,b.r*1.55)*(pending?2.5:1.3)){
+        const rx=(SHIP.x-b.x)/d,ry=(SHIP.y-b.y)/d;
+        return arriveAt(b,Math.sign(rx*rvy-ry*rvx)||1);
+      }
+    }
+  }
+}
+let lastWarn=0;
+function warn(msg){const n=performance.now();if(n-lastWarn>6000){lastWarn=n;toast(msg);SFX.alarm()}}
+
+function arriveAt(b,dir){
+  cancelAuto();targetId=b.id;
+  const stop=stopById(b.id);
+  if(b.id==='mirai'&&miraiLocked()){
+    SHIP.state='orbit';SHIP.ob={body:b,alt:b.r*1.9,ang:Math.atan2(SHIP.y-b.y,SHIP.x-b.x),dir};
+    toast(stop.lockedRadio);SFX.radio();updateObjective();return;
+  }
+  if(MS.col[b.id]||b.id==='kotoba'&&MS.pf){
+    SHIP.state='orbit';SHIP.ob={body:b,alt:b.r*1.7,ang:Math.atan2(SHIP.y-b.y,SHIP.x-b.x),dir};
+    SFX.clank();toast('ÓRBITA ESTABLE SOBRE '+b.name+' · archivo disponible','cy');updateHUD();return;
+  }
+  // sobrevuelo de recolección
+  SHIP.state='flyby';slowmo=.55;document.body.classList.add('cine');
+  SHIP.fb={body:b,t:0,dur:3.6,a0:Math.atan2(SHIP.y-b.y,SHIP.x-b.x),
+    r0:hyp(SHIP.x-b.x,SHIP.y-b.y),alt:b.r*1.5,dir,took:false};
+  SFX.capture();shake=4;
+}
+function flybyStep(dt){
+  const f=SHIP.fb,b=f.body;f.t+=dt;
+  const k=Math.min(1,f.t/f.dur);
+  const a=f.a0+f.dir*smooth(k)*TAU*1.35;
+  const r=lerp(f.r0,f.alt,smooth(Math.min(1,f.t/(f.dur*.4))));
+  SHIP.x=b.x+Math.cos(a)*r;SHIP.y=b.y+Math.sin(a)*r;
+  SHIP.ang=a+f.dir*PI/2;SHIP.thr=.25;
+  if(!f.took&&k>.62){f.took=true;collectProbe(b)}
+  if(k>=1){
+    SHIP.state='orbit';SHIP.ob={body:b,alt:f.alt,ang:a,dir:f.dir};
+    slowmo=1;document.body.classList.remove('cine');SHIP.fb=null;SHIP.thr=0;
+    setTimeout(()=>openStop(b.id),420);
+  }
+}
+function collectProbe(b){
+  MS.col[b.id]=true;saveMS();
+  const stop=stopById(b.id);
+  SFX.pickup();shake=6;
+  toast((stop.probe?stop.probe+' RECUPERADA · ':'')+b.name+' '+b.jp,'ok');
+  updateHUD();
+}
+
+/* ================= CÁMARA Y RENDER ================= */
+const cv=$('#cv'),ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1;
+function resize(){DPR=Math.min(devicePixelRatio||1,2);
+  W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;
+  cv.style.width=W+'px';cv.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0)}
+addEventListener('resize',resize);resize();
+const cam={x:0,y:0,z:.7,mode:'follow'};
+function camTick(dt){
+  let tx,ty,tz;
+  if(cam.mode==='map'){tx=0;ty=0;tz=Math.min(W,H/SQ)/(OUTER*2.18)}
+  else{
+    tx=SHIP.x+SHIP.vx*.3;ty=SHIP.y+SHIP.vy*.3;
+    const dom=dominant();
+    const v=hyp(SHIP.vx,SHIP.vy);
+    tz=dom.sun?clamp(.85-v/1400,.38,.8):1.05;
+    if(SHIP.state==='flyby')tz=1.25;
+  }
+  const k=1-Math.exp(-dt*3.5);
+  cam.x+=(tx-cam.x)*k;cam.y+=(ty-cam.y)*k;cam.z+=(tz-cam.z)*k;
+}
+function w2s(x,y){return[W/2+(x-cam.x)*cam.z,H/2+(y-cam.y)*cam.z*SQ]}
+function s2w(px,py){return[(px-W/2)/cam.z+cam.x,(py-H/2)/(cam.z*SQ)+cam.y]}
+
+/* estrellas */
+const starsL=[];
+{const rng=mulberry(77);
+ for(const[par,n,sz]of[[.12,150,1],[.28,110,1.4],[.5,70,1.9]]){
+   const arr=[];for(let i=0;i<n;i++)arr.push({x:rng()*4000,y:rng()*4000,s:sz*(.5+rng()*.8),ph:rng()*TAU,sp:.5+rng()*2});
+   starsL.push({par,arr});
+ }}
+let shoot=null,shootT=5;
+function drawStars(t){
+  for(const L of starsL){
+    ctx.fillStyle='#cfd6ff';
+    for(const s of L.arr){
+      const x=(((s.x-cam.x*L.par)%4000)+4000)%4000-2000+W/2;
+      const y=(((s.y-cam.y*L.par*SQ)%4000)+4000)%4000-2000+H/2;
+      if(x<-5||x>W+5||y<-5||y>H+5)continue;
+      ctx.globalAlpha=.25+.45*Math.abs(Math.sin(t*s.sp+s.ph));
+      ctx.fillRect(x,y,s.s,s.s);
+    }
+  }
+  ctx.globalAlpha=1;
+  shootT-=1/60;
+  if(shootT<0&&!shoot){shoot={x:Math.random()*W,y:Math.random()*H*.5,vx:-(3+Math.random()*4),vy:2+Math.random()*2,life:1};shootT=7+Math.random()*9}
+  if(shoot){shoot.x+=shoot.vx*4;shoot.y+=shoot.vy*4;shoot.life-=.025;
+    ctx.strokeStyle=`rgba(210,225,255,${shoot.life*.7})`;ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(shoot.x,shoot.y);ctx.lineTo(shoot.x-shoot.vx*9,shoot.y-shoot.vy*9);ctx.stroke();
+    if(shoot.life<=0)shoot=null}
+}
+function drawOrbits(){
+  ctx.save();ctx.setLineDash([3,7]);ctx.lineWidth=1;
+  for(const b of BODIES){
+    if(b.sun||b.parent===undefined&&!b.R)continue;
+    if(b.parent){const p=BODY[b.parent];const[cx,cy]=w2s(p.x,p.y);
+      ctx.strokeStyle='rgba(180,140,255,.16)';
+      ctx.beginPath();ctx.ellipse(cx,cy,b.Rm*cam.z,b.Rm*cam.z*SQ,0,0,TAU);ctx.stroke();
+    }else{const[cx,cy]=w2s(0,0);
+      ctx.strokeStyle=targetId===b.id?'rgba(110,231,255,.35)':'rgba(110,231,255,.12)';
+      ctx.beginPath();ctx.ellipse(cx,cy,b.R*cam.z,b.R*cam.z*SQ,0,0,TAU);ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+function shade(b,px,py,r){
+  // lado oscuro opuesto al sol
+  const d=hyp(b.x,b.y)||1,lx=-b.x/d,ly=-b.y/d; // luz hacia el sol (desde el cuerpo)
+  const g=ctx.createRadialGradient(px-lx*r*1.05,py-ly*r*1.05*SQ,r*.15,px-lx*r*.25,py-ly*r*.25,r*1.55);
+  g.addColorStop(0,'rgba(4,6,16,0)');g.addColorStop(.55,'rgba(4,6,16,.05)');g.addColorStop(1,'rgba(3,4,12,.86)');
+  ctx.save();ctx.beginPath();ctx.arc(px,py,r,0,TAU);ctx.clip();
+  ctx.fillStyle=g;ctx.fillRect(px-r,py-r,r*2,r*2);ctx.restore();
+}
+function sphereBase(b,px,py,r){
+  const d=hyp(b.x,b.y)||1,lx=-b.x/d,ly=-b.y/d;
+  const g=ctx.createRadialGradient(px+lx*r*.5,py+ly*r*.5*SQ,r*.1,px,py,r);
+  g.addColorStop(0,b.c[0]);g.addColorStop(.55,b.c[1]);g.addColorStop(1,b.c[2]);
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,r,0,TAU);ctx.fill();
+}
+function drawBody(b,t){
+  const[px,py]=w2s(b.x,b.y),r=b.r*cam.z;
+  if(px<-r-180||px>W+r+180||py<-r-180||py>H+r+180)return;
+  if(b.style==='sun'){
+    const g2=ctx.createRadialGradient(px,py,0,px,py,r*3.2);
+    g2.addColorStop(0,'rgba(255,210,120,.5)');g2.addColorStop(.4,'rgba(255,120,60,.14)');g2.addColorStop(1,'rgba(255,90,40,0)');
+    ctx.fillStyle=g2;ctx.beginPath();ctx.arc(px,py,r*3.2,0,TAU);ctx.fill();
+    const g=ctx.createRadialGradient(px,py,0,px,py,r*(1+.02*Math.sin(t*2)));
+    g.addColorStop(0,'#fffbe8');g.addColorStop(.55,'#ffd27a');g.addColorStop(1,'#ff7a3c');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,r,0,TAU);ctx.fill();
+    return;
+  }
+  if(b.style==='station'){drawStation(b,px,py,r,t);return}
+  if(b.atmo){const g=ctx.createRadialGradient(px,py,r*.9,px,py,r*1.3);
+    g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.6,b.atmo.replace(/[\d.]+\)$/,'.18)'));g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,r*1.3,0,TAU);ctx.fill()}
+  if(b.style==='gas'){ // anillos traseros
+    ctx.save();ctx.beginPath();ctx.rect(px-r*2.4,py-r*2.4,r*4.8,r*2.4);ctx.clip();
+    rings(b,px,py,r);ctx.restore();
+  }
+  sphereBase(b,px,py,r);
+  ctx.save();ctx.beginPath();ctx.arc(px,py,r,0,TAU);ctx.clip();
+  const sp=b.spin;
+  if(b.style==='rock'){
+    ctx.globalAlpha=.3;ctx.fillStyle=b.c[2];
+    for(let i=0;i<3;i++){const yy=py+r*(-.5+i*.46),ww=r*(1.6-i*.2);
+      ctx.beginPath();ctx.ellipse(px+Math.sin(sp+i)*r*.18,yy,ww,r*.13,0,0,TAU);ctx.fill()}
+    ctx.globalAlpha=.25;ctx.fillStyle='#2b0d06';
+    for(let i=0;i<4;i++){const a=sp*2+i*1.7,cr=r*.1;
+      ctx.beginPath();ctx.arc(px+Math.cos(a)*r*.55,py+Math.sin(a*1.3)*r*.5,cr,0,TAU);ctx.fill()}
+  }else if(b.style==='clouds'){
+    ctx.globalAlpha=.16;ctx.fillStyle='#ffffff';
+    for(let i=0;i<3;i++){const a=sp*3+i*2.1;
+      ctx.beginPath();ctx.ellipse(px+Math.cos(a)*r*.3,py+r*(-.35+i*.35),r*.75,r*.16,Math.sin(a)*.3,0,TAU);ctx.fill()}
+  }else if(b.style==='gas'){
+    ctx.globalAlpha=.28;
+    for(let i=0;i<4;i++){ctx.fillStyle=i%2?b.c[2]:b.c[0];
+      ctx.beginPath();ctx.ellipse(px,py+r*(-.6+i*.4),r*.96,r*.14,0,0,TAU);ctx.fill()}
+  }else if(b.style==='moonb'){
+    ctx.globalAlpha=.3;ctx.fillStyle=b.c[2];
+    for(let i=0;i<5;i++){const a=sp*2+i*1.3;
+      ctx.beginPath();ctx.arc(px+Math.cos(a)*r*.5,py+Math.sin(a*1.7)*r*.5,r*.16,0,TAU);ctx.fill()}
+  }else if(b.style==='ice'){
+    ctx.globalAlpha=.5;ctx.fillStyle='#ffffff';
+    ctx.beginPath();ctx.ellipse(px,py-r*.78,r*.6,r*.2,0,0,TAU);ctx.fill();
+    ctx.beginPath();ctx.ellipse(px,py+r*.8,r*.55,r*.18,0,0,TAU);ctx.fill();
+    ctx.globalAlpha=.12;ctx.strokeStyle='#0e2c46';ctx.lineWidth=1;
+    for(let i=0;i<3;i++){ctx.beginPath();ctx.ellipse(px,py,r*(.35+i*.22),r*.92,0,0,TAU);ctx.stroke()}
+  }else if(b.style==='data'){
+    ctx.globalAlpha=.3;ctx.fillStyle=b.c[2];
+    ctx.beginPath();ctx.ellipse(px,py+r*.2,r*.85,r*.3,.3,0,TAU);ctx.fill();
+    // luces nocturnas en el lado oscuro
+    const d=hyp(b.x,b.y)||1,lx=b.x/d,ly=b.y/d;
+    ctx.globalAlpha=.85;ctx.fillStyle='#ffe28a';
+    const rng=mulberry(9);
+    for(let i=0;i<14;i++){const a=rng()*TAU,rr=Math.sqrt(rng())*r*.85;
+      const xx=Math.cos(a)*rr,yy=Math.sin(a)*rr;
+      if(xx*lx+yy*ly>r*.1){const tw=.4+.6*Math.abs(Math.sin(t*2+i));
+        ctx.globalAlpha=.7*tw;ctx.fillRect(px+xx,py+yy,1.6,1.6)}}
+  }else if(b.style==='gate'){
+    ctx.globalAlpha=.25;ctx.fillStyle=b.c[0];
+    for(let i=0;i<3;i++){const a=sp*4+i*2;
+      ctx.beginPath();ctx.ellipse(px+Math.cos(a)*r*.2,py+Math.sin(a)*r*.3,r*.5,r*.12,a,0,TAU);ctx.fill()}
+  }
+  ctx.restore();ctx.globalAlpha=1;
+  shade(b,px,py,r);
+  if(b.style==='gas'){ // anillos delanteros
+    ctx.save();ctx.beginPath();ctx.rect(px-r*2.4,py,r*4.8,r*2.4);ctx.clip();
+    rings(b,px,py,r);ctx.restore();
+  }
+  if(b.style==='gate'){ // halo de la puerta
+    const locked=miraiLocked()&&!MS.col.mirai;
+    const pul=.5+.5*Math.sin(t*(locked?1:3));
+    ctx.save();ctx.globalAlpha=locked?.25+.1*pul:.5+.3*pul;
+    ctx.strokeStyle=locked?'#5b4a8a':'#c9a8ff';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.ellipse(px,py,r*1.75,r*1.75*.45,-.5,0,TAU);ctx.stroke();
+    if(!locked){ctx.fillStyle='#e2d2ff';
+      for(let i=0;i<6;i++){const a=t*1.2+i*TAU/6;
+        ctx.globalAlpha=.6;ctx.beginPath();
+        ctx.arc(px+Math.cos(a)*r*1.75,py+Math.sin(a)*r*1.75*.45,1.8,0,TAU);ctx.fill()}}
+    ctx.restore();
+  }
+  // sonda pendiente
+  const stop=stopById(b.id);
+  if(stop&&stop.probe&&!MS.col[b.id])drawProbe(b,px,py,r,t);
+  // etiqueta
+  if(cam.mode==='map'||targetId===b.id||hyp(SHIP.x-b.x,SHIP.y-b.y)<b.soi){
+    ctx.font='10px DotGothic16, monospace';ctx.textAlign='center';
+    ctx.fillStyle=MS.col[b.id]?'rgba(125,255,166,.8)':'rgba(110,231,255,.8)';
+    const tag=MS.col[b.id]?'✓ ':(stop&&stop.probe?stop.probe+' · ':'');
+    ctx.fillText(tag+b.name+' '+b.jp,px,py+r+16);
+  }
+  if(targetId===b.id&&!MS.col[b.id]){
+    ctx.save();ctx.setLineDash([5,5]);ctx.lineDashOffset=-t*16;
+    ctx.strokeStyle='rgba(110,231,255,.6)';ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.arc(px,py,r+10+3*Math.sin(t*3),0,TAU);ctx.stroke();ctx.restore();
+  }
+}
+function rings(b,px,py,r){
+  ctx.lineWidth=Math.max(1.5,r*.1);ctx.strokeStyle='rgba(255,214,150,.42)';
+  ctx.beginPath();ctx.ellipse(px,py,r*1.7,r*1.7*.32,0,0,TAU);ctx.stroke();
+  ctx.lineWidth=Math.max(1,r*.05);ctx.strokeStyle='rgba(255,214,150,.2)';
+  ctx.beginPath();ctx.ellipse(px,py,r*2.05,r*2.05*.32,0,0,TAU);ctx.stroke();
+}
+function drawStation(b,px,py,r,t){
+  const s=r/26;
+  ctx.save();ctx.translate(px,py);ctx.scale(s,s);
+  ctx.rotate(Math.sin(t*.4)*.05);
+  ctx.strokeStyle='#2a1812';ctx.fillStyle='#ff5a3c';
+  // pilares del torii
+  ctx.fillRect(-16,-8,5,30);ctx.fillRect(11,-8,5,30);
+  // kasagi (viga superior curvada)
+  ctx.beginPath();ctx.moveTo(-24,-14);ctx.quadraticCurveTo(0,-21,24,-14);
+  ctx.lineTo(24,-9);ctx.quadraticCurveTo(0,-16,-24,-9);ctx.closePath();ctx.fill();
+  ctx.fillRect(-19,-4,38,4);  // nuki
+  ctx.fillStyle='#d8452e';ctx.fillRect(-16,14,5,8);ctx.fillRect(11,14,5,8);
+  // luces de atraque
+  const bl=Math.sin(t*5)>0;
+  ctx.fillStyle=bl?'#7dffa6':'#1d4a2c';ctx.fillRect(-26,-15,3,3);
+  ctx.fillStyle=bl?'#1d4a2c':'#7dffa6';ctx.fillRect(23,-15,3,3);
+  ctx.restore();
+  ctx.font='10px DotGothic16, monospace';ctx.textAlign='center';
+  ctx.fillStyle='rgba(255,90,60,.85)';
+  if(cam.mode==='map'||hyp(SHIP.x-b.x,SHIP.y-b.y)<b.soi*1.4)ctx.fillText(b.name+' '+b.jp,px,py+r+18);
+}
+function drawProbe(b,px,py,r,t){
+  const a=b.probeAng,pr=r*1.5;
+  const sx=px+Math.cos(a)*pr,sy=py+Math.sin(a)*pr*SQ;
+  ctx.save();ctx.translate(sx,sy);ctx.rotate(a);
+  ctx.fillStyle='#ffd9a0';
+  ctx.beginPath();ctx.moveTo(0,-5);ctx.lineTo(4,0);ctx.lineTo(0,5);ctx.lineTo(-4,0);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#ffb454';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(-7,0);ctx.lineTo(7,0);ctx.stroke();
+  ctx.restore();
+  const bl=.4+.6*Math.abs(Math.sin(t*6+b.r));
+  ctx.fillStyle=`rgba(255,90,60,${bl})`;ctx.beginPath();ctx.arc(sx,sy-7,1.6,0,TAU);ctx.fill();
+}
+function drawShip(t){
+  if(SHIP.state==='docked'&&!MS.pf){/* atracada: dibujar pegada a la estación */}
+  const[px,py]=w2s(SHIP.x,SHIP.y);
+  // estela
+  if(SHIP.trail.length>1){ctx.save();
+    for(let i=1;i<SHIP.trail.length;i++){const a=i/SHIP.trail.length;
+      const[x1,y1]=w2s(SHIP.trail[i-1][0],SHIP.trail[i-1][1]);
+      const[x2,y2]=w2s(SHIP.trail[i][0],SHIP.trail[i][1]);
+      ctx.strokeStyle=`rgba(110,231,255,${a*.3})`;ctx.lineWidth=a*2;
+      ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
+    ctx.restore()}
+  const va=Math.atan2(Math.sin(SHIP.ang)*SQ,Math.cos(SHIP.ang));
+  const s=clamp(15*cam.z,10,21);
+  ctx.save();ctx.translate(px,py);ctx.rotate(va);ctx.scale(s/15,s/15);
+  // flama
+  if(SHIP.thr>0.05){const fl=SHIP.thr*(10+Math.random()*7);
+    ctx.fillStyle='rgba(255,170,80,.85)';
+    ctx.beginPath();ctx.moveTo(-9,-3);ctx.lineTo(-9-fl,0);ctx.lineTo(-9,3);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(255,240,200,.9)';
+    ctx.beginPath();ctx.moveTo(-9,-1.6);ctx.lineTo(-9-fl*.55,0);ctx.lineTo(-9,1.6);ctx.closePath();ctx.fill()}
+  // fuselaje tipo tsubame
+  ctx.fillStyle='#f2ede0';
+  ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(-4,-5);ctx.lineTo(-9,-2);ctx.lineTo(-9,2);ctx.lineTo(-4,5);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#ff5a3c';
+  ctx.beginPath();ctx.moveTo(-2,-4.4);ctx.lineTo(-10,-9);ctx.lineTo(-6,-2);ctx.closePath();ctx.fill();
+  ctx.beginPath();ctx.moveTo(-2,4.4);ctx.lineTo(-10,9);ctx.lineTo(-6,2);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#6ee7ff';ctx.beginPath();ctx.arc(5,0,2.1,0,TAU);ctx.fill();
+  ctx.restore();
+  // haz de escaneo durante sobrevuelo
+  if(SHIP.state==='flyby'&&SHIP.fb){const b=SHIP.fb.body;const[bx,by]=w2s(b.x,b.y);
+    ctx.save();const gr=ctx.createLinearGradient(px,py,bx,by);
+    gr.addColorStop(0,'rgba(110,231,255,.5)');gr.addColorStop(1,'rgba(110,231,255,0)');
+    ctx.strokeStyle=gr;ctx.lineWidth=2+Math.sin(t*22)*1.2;
+    ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(bx,by);ctx.stroke();ctx.restore()}
+}
+function drawTargetArrow(){
+  const id=targetId||nextObjective();if(!id)return;
+  const b=BODY[id];const[px,py]=w2s(b.x,b.y);
+  const m=46;
+  if(px>m&&px<W-m&&py>m&&py<H-m)return;
+  const cx=W/2,cy=H/2,dx=px-cx,dy=py-cy;
+  const sc=Math.min((W/2-m)/Math.abs(dx||.001),(H/2-m)/Math.abs(dy||.001));
+  const ax=cx+dx*sc,ay=cy+dy*sc,a=Math.atan2(dy,dx);
+  ctx.save();ctx.translate(ax,ay);ctx.rotate(a);
+  ctx.fillStyle='rgba(110,231,255,.85)';
+  ctx.beginPath();ctx.moveTo(10,0);ctx.lineTo(-6,-7);ctx.lineTo(-6,7);ctx.closePath();ctx.fill();
+  ctx.rotate(-a);ctx.font='10px DotGothic16, monospace';ctx.textAlign='center';
+  ctx.fillStyle='rgba(110,231,255,.8)';
+  ctx.fillText(fmt(hyp(SHIP.x-b.x,SHIP.y-b.y))+' u',0,22);
+  ctx.restore();
+}
+function render(t){
+  ctx.fillStyle='#06070f';ctx.fillRect(0,0,W,H);
+  if(shake>0){ctx.save();ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake)}
+  drawStars(t);
+  drawOrbits();
+  const sorted=BODIES.slice().sort((a,b2)=>a.y-b2.y);
+  let shipDrawn=false;
+  for(const b of sorted){
+    if(!shipDrawn&&SHIP.y<b.y){drawShip(t);shipDrawn=true}
+    drawBody(b,t);
+  }
+  if(!shipDrawn)drawShip(t);
+  drawTargetArrow();
+  if(shake>0){ctx.restore();shake=Math.max(0,shake-.35)}
+}
+
+/* ================= UI ================= */
+function toast(msg,cls){
+  const t=el(`<div class="toast ${cls||''}">${msg}</div>`);
+  $('#toasts').appendChild(t);
+  setTimeout(()=>{t.style.transition='opacity .5s';t.style.opacity='0';setTimeout(()=>t.remove(),520)},4200);
+  while($('#toasts').children.length>3)$('#toasts').firstChild.remove();
+}
+function updateHUD(){
+  const pips=$('#pips');pips.innerHTML='';
+  for(const id of ORDER){
+    const p=document.createElement('div');
+    p.className='pip'+(id==='kotoba'?' st':'');
+    if(id==='kotoba'?MS.pf:MS.col[id])p.classList.add(MS.arch[id]?'arch':'col');
+    if(id==='kotoba'&&MS.pf)p.classList.add(MS.arch.kotoba?'arch':'col');
+    pips.appendChild(p);
+  }
+  updateObjective();
+}
+function updateObjective(){
+  const id=nextObjective(),chip=$('#objChip');
+  if(!id){chip.textContent='SISTEMA COMPLETO · 7/7 SONDAS';chip.classList.remove('on');return}
+  const b=BODY[id];
+  if(!MS.pf){chip.textContent='OBJETIVO ▸ CHEQUEO PRE-VUELO · ESTACIÓN KOTOBA'}
+  else chip.textContent='OBJETIVO ▸ '+b.name+' '+b.jp+(AUTO?' · AUTO':'');
+  chip.classList.toggle('on',!!AUTO);
+}
+/* ---------- panel ---------- */
+let panelOpen=false,curStop=null;
+function openStop(id){
+  const s=stopById(id);if(!s)return;
+  curStop=s;panelOpen=true;
+  $('#panel').hidden=false;AU.duck(true);SFX.open();
+  $('#ptag').textContent=s.probe?('SONDA '+s.probe+(MS.col[id]?' · RECUPERADA':'')):'PUERTO BASE';
+  $('#ptitle').innerHTML=s.name+'<small>'+s.jp+'</small>';
+  $('#psub').textContent=s.tema+' — '+s.sub;
+  $('#ptime').textContent=s.time||'';
+  const pb=$('#pbody');pb.innerHTML='';pb.scrollTop=0;
+  if(s.radio&&!MS.arch[id])pb.insertAdjacentHTML('beforeend',
+    `<p class="note" style="font-family:var(--mono);color:var(--cyan);border:1px dashed rgba(110,231,255,.4);border-radius:8px;padding:8px 10px;letter-spacing:.5px">▸ ${s.radio}</p>`);
+  if(s.station)buildPreflight(s,pb);
+  else if(s.gate)buildFinal(s,pb);
+  else buildLesson(s,pb);
+  if(s.radio&&!MS.arch[id])setTimeout(()=>SFX.radio(),300);
+}
+function closePanel(){panelOpen=false;$('#panel').hidden=true;AU.duck(false);SFX.close();updateHUD()}
+$('#pclose').addEventListener('click',closePanel);
+
+function bitaHTML(s){
+  let h='<div class="sec"><h3>■ BITÁCORA DE LA SONDA</h3>';
+  for(const p of s.bita){
+    if(typeof p==='string')h+=`<p class="bt">${p}</p>`;
+    else if(p.chips){h+='<div class="chips">';
+      for(const[b,d]of p.chips)h+=`<div class="chip"><b>${b}</b><span>${d}</span></div>`;
+      h+='</div>'}
+    else if(p.quote)h+=`<div class="quote"><div class="q">${p.quote}</div><cite>${p.cite}</cite></div>`;
+  }
+  h+='</div>';return h;
+}
+function buildLesson(s,pb){
+  pb.insertAdjacentHTML('beforeend',bitaHTML(s));
+  const ex=el('<div class="sec"><h3 class="cy">■ EJERCICIO · DATOS DE LA SONDA</h3></div>');
+  pb.appendChild(ex);
+  if(s.exercise.type==='tag')buildTag(s,ex);
+  else if(s.exercise.type==='order')buildOrder(s,ex);
+  else if(s.exercise.type==='spectrum')buildSpectrum(s,ex);
+  else if(s.exercise.type==='find')buildFind(s,ex);
+  const qz=el('<div class="sec"><h3>■ MINI-QUIZ · ARCHIVAR SONDA</h3></div>');
+  pb.appendChild(qz);
+  buildQuiz(s,qz,s.quiz,()=>{
+    MS.arch[s.id]=true;saveMS();updateHUD();
+    qz.insertAdjacentHTML('beforeend',`<div class="stamp">✓ SONDA ARCHIVADA</div>
+      <p class="note">${s.takeaway||''}</p>`);
+    SFX.stamp();
+    const nid=nextObjective();
+    if(nid)qz.appendChild(btn('RUMBO A '+BODY[nid].name+' ▸','nextb cy',()=>{closePanel();engageAuto(nid)}));
+    qz.appendChild(btn('VOLVER AL PUENTE','nextb ghost',closePanel));
+  });
+}
+function btn(label,cls,fn){const b=el(`<button class="${cls}">${label}</button>`);b.addEventListener('click',()=>{fn()});return b}
+
+/* ---------- motores de ejercicio ---------- */
+function scoreItem(first){MS.tries++;if(first)MS.okFirst++;saveMS()}
+function buildTag(s,box){
+  const ex=s.exercise;let i=0,firstTry=true,firstOk=0;
+  box.insertAdjacentHTML('beforeend',`<p class="note">${ex.prompt}</p>${ex.hypo?`<div class="hypo">${ex.hypo}</div>`:''}`);
+  const wrap=el('<div></div>');box.appendChild(wrap);
+  function show(){
+    const it=ex.items[i];firstTry=true;
+    const isM=it.type==='mcq';
+    wrap.innerHTML=`<div class="xprog">REGISTRO ${i+1} / ${ex.items.length}</div>
+      <div class="xcard" id="xc">${it.t}</div>
+      <div class="cats">${(isM?it.opts:ex.cats).map((c,j)=>`<button class="catb" data-j="${j}">${c}</button>`).join('')}</div>
+      <div class="fb" id="xfb"></div>`;
+    wrap.querySelectorAll('.catb').forEach(b=>b.addEventListener('click',()=>{
+      const j=+b.dataset.j,card=wrap.querySelector('#xc'),fb=wrap.querySelector('#xfb');
+      if(j===it.ok){
+        if(firstTry){firstOk++;scoreItem(true)}
+        SFX.good();card.className='xcard ok';b.classList.add('ok');
+        fb.className='fb ok';fb.textContent='✓ '+it.fb;
+        wrap.querySelectorAll('.catb').forEach(x=>x.disabled=true);
+        setTimeout(()=>{i++;i<ex.items.length?show():finish()},1450);
+      }else{
+        if(firstTry){scoreItem(false);firstTry=false}
+        SFX.bad();card.className='xcard bad';b.classList.add('bad');b.disabled=true;
+        fb.className='fb bad';fb.textContent='✗ Aquí no. Vuelve a intentarlo.';
+        setTimeout(()=>card.classList.remove('bad'),380);
+      }
+    }));
+  }
+  function finish(){
+    let h=`<div class="fb ok">EJERCICIO COMPLETO · ${firstOk}/${ex.items.length} a la primera</div>`;
+    if(ex.after){h+=`<p class="note" style="margin-top:14px"><b style="color:var(--amber)">${ex.after.title}</b></p>
+      <div class="badbox">✗ ${ex.after.bad}</div>
+      <div class="promptbox">${ex.after.good}</div><p class="note">${ex.after.note}</p>`}
+    wrap.innerHTML=h;SFX.good();
+  }
+  show();
+}
+function buildOrder(s,box){
+  const ex=s.exercise,n=ex.items.length;
+  const rng=mulberry(42);
+  const orderIdx=shuffle(ex.items.map((_,i)=>i),rng);
+  box.insertAdjacentHTML('beforeend',`<p class="note">${ex.prompt}</p>`);
+  const wrap=el('<div></div>');box.appendChild(wrap);
+  let picks=[],attempts=0,scored=false;
+  function draw(){
+    wrap.innerHTML=orderIdx.map((oi,vi)=>{
+      const p=picks.indexOf(oi);
+      return`<div class="ocard" data-oi="${oi}">${ex.items[oi].t}<div class="onum">${p>=0?p+1:''}</div></div>`
+    }).join('')+`<div class="fb" id="ofb"></div>`;
+    const chk=el(`<button class="nextb" ${picks.length<n?'disabled':''}>COMPROBAR SECUENCIA</button>`);
+    wrap.appendChild(chk);
+    wrap.querySelectorAll('.ocard').forEach(c=>c.addEventListener('click',()=>{
+      const oi=+c.dataset.oi,p=picks.indexOf(oi);
+      if(p>=0)picks=picks.slice(0,p);else picks.push(oi);
+      SFX.ui();draw();
+    }));
+    chk.addEventListener('click',()=>{
+      attempts++;let all=true;
+      wrap.querySelectorAll('.ocard').forEach(c=>{
+        const oi=+c.dataset.oi,pos=picks.indexOf(oi);
+        if(pos===oi)c.classList.add('ok');else{c.classList.add('bad');all=false}
+      });
+      if(!scored){scoreItem(all);scored=true}
+      const fb=wrap.querySelector('#ofb');
+      if(all){SFX.good();fb.className='fb ok';fb.textContent='✓ Secuencia correcta. '+ex.insight;chk.remove()}
+      else{SFX.bad();fb.className='fb bad';
+        fb.textContent='✗ Hay mensajes fuera de fase. Reordena los marcados en rojo.';
+        chk.textContent='REINTENTAR';
+        chk.replaceWith(btn(attempts>=2?'VER ORDEN CORRECTO':'REINTENTAR','nextb ghost',()=>{
+          if(attempts>=2){picks=ex.items.map((_,i)=>i);draw();
+            wrap.querySelectorAll('.ocard').forEach(c=>c.classList.add('ok'));
+            wrap.querySelector('#ofb').className='fb ok';
+            wrap.querySelector('#ofb').textContent='Orden revelado. '+ex.insight;
+            wrap.querySelector('.nextb').remove();
+          }else{picks=[];draw()}
+        }));
+      }
+    });
+  }
+  draw();
+}
+function buildSpectrum(s,box){
+  const ex=s.exercise;let i=0;
+  box.insertAdjacentHTML('beforeend',`<p class="note">${ex.prompt}</p>`);
+  const wrap=el('<div></div>');box.appendChild(wrap);
+  function show(){
+    const it=ex.items[i];let tries=0;
+    wrap.innerHTML=`<div class="xprog">ESCENARIO ${i+1} / ${ex.items.length}</div>
+      <div class="xcard" id="xc">${it.t}</div>
+      <div class="slwrap">
+        <input type="range" id="dial" min="0" max="100" value="50">
+        <div class="sllab"><span>◀ ${ex.left}</span><span>${ex.right} ▶</span></div>
+      </div><div class="fb" id="xfb"></div>`;
+    const fix=btn('FIJAR EL DIAL','nextb',()=>{
+      const v=+wrap.querySelector('#dial').value,ok=v>=it.zone[0]&&v<=it.zone[1];
+      const fb=wrap.querySelector('#xfb');tries++;
+      if(tries===1)scoreItem(ok);
+      if(ok){SFX.good();wrap.querySelector('#xc').className='xcard ok';
+        fb.className='fb ok';fb.textContent='✓ '+it.fb;fix.remove();
+        setTimeout(()=>{i++;i<ex.items.length?show():done()},1900);
+      }else{SFX.bad();wrap.querySelector('#xc').className='xcard bad';
+        fb.className='fb bad';
+        fb.textContent=(v<it.zone[0]?'✗ Demasiado control para lo que está en juego aquí. ':'✗ Demasiada distancia para algo tan irreversible. ')+'Reajusta.';
+        if(tries>=2){fb.className='fb';fb.textContent='Zona correcta: '+(it.zone[0]>=50?'hacia ON. ':'hacia IN. ')+it.fb;
+          fix.remove();setTimeout(()=>{i++;i<ex.items.length?show():done()},2600)}
+        setTimeout(()=>wrap.querySelector('#xc').classList.remove('bad'),380);
+      }
+    });
+    wrap.appendChild(fix);
+    wrap.querySelector('#dial').addEventListener('input',()=>SFX.ui());
+  }
+  function done(){wrap.innerHTML='<div class="fb ok">DIAL CALIBRADO · La regla viaja contigo: a mayor irreversibilidad, más cerca del loop.</div>';SFX.good()}
+  show();
+}
+function buildFind(s,box){
+  const ex=s.exercise;
+  box.insertAdjacentHTML('beforeend',`<p class="note">${ex.prompt}</p>`);
+  const tab=el('<div class="ftab"></div>');
+  let h=`<div class="ftr">${ex.cols.map(c=>`<div class="fcell fh">${c}</div>`).join('')}</div>`;
+  ex.rows.forEach((row,ri)=>{h+=`<div class="ftr">${row.map((c,ci)=>`<div class="fcell tap" data-r="${ri}" data-c="${ci}">${c}</div>`).join('')}</div>`});
+  tab.innerHTML=h;box.appendChild(tab);
+  const fb=el('<div class="fb"></div>');box.appendChild(fb);
+  const scan=btn('ESCANEAR TABLA','nextb',doScan);box.appendChild(scan);
+  const isF=(r,c)=>ex.faults.some(f=>f[0]===r&&f[1]===c);
+  let scans=0,scored=false;
+  tab.querySelectorAll('.tap').forEach(c=>c.addEventListener('click',()=>{
+    if(c.classList.contains('hit'))return;
+    c.classList.toggle('sel');SFX.ui();
+  }));
+  function doScan(){
+    scans++;let hits=0,wrong=0;
+    tab.querySelectorAll('.tap').forEach(c=>{
+      const r=+c.dataset.r,col=+c.dataset.c;
+      c.classList.remove('wrongmark');
+      if(c.classList.contains('sel')){
+        if(isF(r,col)){c.classList.remove('sel');c.classList.add('hit')}
+        else{c.classList.remove('sel');c.classList.add('wrongmark');wrong++;setTimeout(()=>c.classList.remove('wrongmark'),900)}
+      }
+      if(c.classList.contains('hit'))hits++;
+    });
+    if(!scored){scoreItem(hits===ex.faults.length&&wrong===0);scored=true}
+    if(hits===ex.faults.length){
+      SFX.good();fb.className='fb ok';
+      fb.innerHTML='✓ 4/4 fallas localizadas:<br>'+ex.faultFb.map(f=>'· '+f).join('<br>');
+      box.insertAdjacentHTML('beforeend',`<p class="note">${ex.after}</p>`);scan.remove();
+    }else{
+      SFX.bad();fb.className='fb bad';
+      fb.textContent=`✗ ${hits}/${ex.faults.length} fallas confirmadas${wrong?`, ${wrong} marca(s) en celdas sanas`:''}. Sigue buscando.`;
+      if(scans>=3){scan.textContent='REVELAR FALLAS';scan.onclick=null;
+        scan.replaceWith(btn('REVELAR FALLAS','nextb ghost',()=>{
+          ex.faults.forEach(f=>{tab.querySelector(`[data-r="${f[0]}"][data-c="${f[1]}"]`).classList.add('hit')});
+          fb.className='fb';fb.innerHTML=ex.faultFb.map(f=>'· '+f).join('<br>');
+          box.insertAdjacentHTML('beforeend',`<p class="note">${ex.after}</p>`);scan.remove();
+        }))}
+    }
+  }
+}
+function buildQuiz(s,box,items,onDone){
+  const start=btn('INICIAR QUIZ ▸','nextb',()=>{start.remove();run()});
+  if(MS.arch[s.id]){box.insertAdjacentHTML('beforeend','<div class="stamp">✓ SONDA ARCHIVADA</div><p class="note">Ya archivaste esta sonda. Puedes repasar la bitácora cuando quieras.</p>');
+    box.appendChild(btn('VOLVER AL PUENTE','nextb ghost',closePanel));return}
+  box.appendChild(start);
+  let i=0;
+  const wrap=el('<div></div>');box.appendChild(wrap);
+  function run(){
+    const it=items[i];let first=true;
+    wrap.innerHTML=`<div class="xprog">PREGUNTA ${i+1} / ${items.length}</div>
+      <div class="xcard">${it.q}</div>
+      <div class="cats" style="grid-template-columns:1fr">${it.opts.map((o,j)=>`<button class="catb" data-j="${j}" style="text-align:left;padding:12px">${o}</button>`).join('')}</div>
+      <div class="fb" id="qfb"></div>`;
+    wrap.querySelectorAll('.catb').forEach(b=>b.addEventListener('click',()=>{
+      const j=+b.dataset.j,fb=wrap.querySelector('#qfb');
+      if(j===it.ok){
+        if(first)scoreItem(true);
+        SFX.good();b.classList.add('ok');
+        wrap.querySelectorAll('.catb').forEach(x=>x.disabled=true);
+        fb.className='fb ok';fb.textContent='✓ '+it.fb;
+        wrap.appendChild(btn(i<items.length-1?'SIGUIENTE ▸':'ARCHIVAR SONDA','nextb',()=>{
+          i++;if(i<items.length)run();else{wrap.innerHTML='';onDone()}
+        }));
+      }else{
+        if(first){scoreItem(false);first=false}
+        SFX.bad();b.classList.add('bad');b.disabled=true;
+        fb.className='fb bad';fb.textContent='✗ Esa no resiste el ataque. Intenta de nuevo.';
+      }
+    }));
+  }
+}
+/* ---------- pre-vuelo (repaso día 1) ---------- */
+function buildPreflight(s,pb){
+  pb.insertAdjacentHTML('beforeend',`<div class="sec"><h3>■ CHEQUEO PRE-VUELO</h3><p class="bt">${s.intro}</p></div>`);
+  const ledBox=el('<div class="leds"></div>');
+  s.systems.forEach(sys=>{ledBox.insertAdjacentHTML('beforeend',
+    `<div class="ledw"><div class="led" id="led-${sys.sys.replace(/\s/g,'')}"></div><small>${sys.sys.split(' ')[0]}</small></div>`)});
+  pb.appendChild(ledBox);
+  const wrap=el('<div></div>');pb.appendChild(wrap);
+  if(MS.pf){wrap.innerHTML=`<div class="stamp">✓ ${s.done}</div><p class="note">Chequeo completado. La nave está lista.</p>`;
+    s.systems.forEach(sys=>{$('#led-'+sys.sys.replace(/\s/g,'')).classList.add('on')});
+    wrap.appendChild(btn('VOLVER AL PUENTE','nextb ghost',closePanel));return}
+  let i=0;
+  function run(){
+    const sys=s.systems[i];let first=true;
+    wrap.innerHTML=`<div class="xprog">SUBSISTEMA ${i+1} / 6 · ${sys.sys}</div>
+      <p class="bt" style="font-size:13.5px;color:var(--dim)">${sys.recap}</p>
+      <div class="xcard">${sys.q}</div>
+      <div class="cats" style="grid-template-columns:1fr">${sys.opts.map((o,j)=>`<button class="catb" data-j="${j}" style="text-align:left;padding:12px">${o}</button>`).join('')}</div>
+      <div class="fb" id="pffb"></div>`;
+    wrap.querySelectorAll('.catb').forEach(b=>b.addEventListener('click',()=>{
+      const j=+b.dataset.j,fb=wrap.querySelector('#pffb'),led=$('#led-'+sys.sys.replace(/\s/g,''));
+      if(j===sys.ok){
+        if(first)scoreItem(true);
+        SFX.good();b.classList.add('ok');led.classList.remove('err');led.classList.add('on');
+        wrap.querySelectorAll('.catb').forEach(x=>x.disabled=true);
+        fb.className='fb ok';fb.textContent='✓ '+sys.fb;
+        wrap.appendChild(btn(i<5?'SIGUIENTE SUBSISTEMA ▸':'SOLICITAR LANZAMIENTO','nextb',()=>{
+          i++;if(i<6)run();else authorize();
+        }));
+      }else{
+        if(first){scoreItem(false);first=false}
+        SFX.bad();b.classList.add('bad');b.disabled=true;led.classList.add('err');
+        fb.className='fb bad';fb.textContent='✗ Subsistema inestable. Vuelve a intentar.';
+      }
+    }));
+  }
+  function authorize(){
+    MS.pf=true;MS.arch.kotoba=true;saveMS();updateHUD();
+    wrap.innerHTML=`<div class="stamp">✓ ${s.done}</div>
+      <p class="bt">Seis subsistemas en verde. La TSUBAME-II está lista, y MEIREI espera con la primera sonda.</p>`;
+    SFX.stamp();
+    wrap.appendChild(btn('INICIAR LANZAMIENTO ▸','nextb cy',()=>{closePanel();launchSeq()}));
+  }
+  run();
+}
+/* ---------- cierre MIRAI ---------- */
+function buildFinal(s,pb){
+  pb.insertAdjacentHTML('beforeend',bitaHTML(s));
+  let h='<div class="sec"><h3 class="cy">■ EL MÉTODO COMPLETO</h3><div class="mrec">';
+  for(const[k,v]of s.recap)h+=`<div><b>${k}</b><br>${v}</div>`;
+  h+='</div></div>';
+  pb.insertAdjacentHTML('beforeend',h);
+  const qz=el('<div class="sec"><h3>■ CERTIFICACIÓN DE VUELO</h3></div>');
+  pb.appendChild(qz);
+  const showEnd=()=>{
+    MS.arch.mirai=true;saveMS();updateHUD();SFX.stamp();
+    const m=Math.floor(MS.time/60),sec=Math.floor(MS.time%60);
+    qz.insertAdjacentHTML('beforeend',`<div class="stamp">✓ CERTIFICACIÓN CONCEDIDA</div>
+      <div class="statline"><span>SONDAS RECUPERADAS</span><b>${probesCollected()}/7</b></div>
+      <div class="statline"><span>ACIERTOS A LA PRIMERA</span><b>${MS.okFirst}/${MS.tries}</b></div>
+      <div class="statline"><span>TIEMPO DE MISIÓN</span><b>${m}m ${sec}s</b></div>
+      <p class="bt" style="margin-top:14px">La nave vuelve a casa. Lo que recolectaste no se queda en órbita: descárgalo y pégalo junto a tu próximo proyecto.</p>`);
+    qz.appendChild(btn('DESCARGAR CHECKLIST DEL MÉTODO ↓','nextb vio',()=>{
+      const blob=new Blob([CHECKLIST_MD],{type:'text/markdown'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+      a.download='checklist-tansa-llms.md';a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),4000);SFX.stamp();
+      toast('CHECKLIST DESCARGADA · fin de la transmisión','ok');
+    }));
+    qz.insertAdjacentHTML('beforeend',`<p class="note" style="text-align:center;letter-spacing:3px;font-family:var(--mono);margin-top:18px">— FIN DE LA TRANSMISIÓN · TANSA-02 —</p>`);
+    const rst=el('<button class="tiny">reiniciar misión (borra el progreso)</button>');
+    rst.addEventListener('click',()=>{if(confirm('¿Borrar todo el progreso de la misión?')){try{localStorage.removeItem('tansa02')}catch(e){};location.reload()}});
+    qz.appendChild(rst);
+  };
+  if(MS.arch.mirai)showEnd();
+  else buildQuiz(s,qz,s.cert,showEnd);
+}
+
+/* ================= ENTRADA ================= */
+/* Vuelo con un dedo: tap corto = seleccionar cuerpo · mantener = volar hacia el dedo */
+let press=null;
+function startFly(){
+  if(!press||press.flying)return;
+  if(cam.mode==='map'||SHIP.state==='docked'||panelOpen)return;
+  press.flying=true;cancelAuto();SFX.rcs();
+  INPUT.aim={x:press.cx,y:press.cy};
+  const fh=$('#flyHint');if(fh)fh.remove();
+}
+function endPress(e){
+  if(!press||e.pointerId!==press.id)return;
+  clearTimeout(press.timer);
+  const wasFly=press.flying;
+  const quick=performance.now()-press.t<240&&Math.abs(e.clientX-press.x)<14&&Math.abs(e.clientY-press.y)<14;
+  press=null;INPUT.aim=null;
+  if(!wasFly&&quick)tapSelect(e.clientX,e.clientY);
+}
+cv.addEventListener('pointerdown',e=>{
+  if(panelOpen)return;
+  try{cv.setPointerCapture(e.pointerId)}catch(_){}
+  press={id:e.pointerId,x:e.clientX,y:e.clientY,cx:e.clientX,cy:e.clientY,t:performance.now(),flying:false};
+  press.timer=setTimeout(startFly,240);
+});
+cv.addEventListener('pointermove',e=>{
+  if(!press||e.pointerId!==press.id)return;
+  press.cx=e.clientX;press.cy=e.clientY;
+  if(!press.flying&&(Math.abs(e.clientX-press.x)>14||Math.abs(e.clientY-press.y)>14))startFly();
+  if(press.flying)INPUT.aim={x:e.clientX,y:e.clientY};
+});
+cv.addEventListener('pointerup',endPress);
+cv.addEventListener('pointercancel',e=>{
+  if(press&&e.pointerId===press.id){clearTimeout(press.timer);press=null;INPUT.aim=null}
+});
+$('#autoBtn').addEventListener('click',()=>{
+  if(AUTO){cancelAuto();toast('PILOTO AUTOMÁTICO DESACTIVADO');return}
+  const id=targetId&&!MS.col[targetId]?targetId:nextObjective();
+  if(!id){toast('SISTEMA COMPLETO · no quedan sondas','ok');return}
+  if(!MS.pf){openStop('kotoba');return}
+  engageAuto(id);
+});
+$('#objChip').addEventListener('click',()=>{
+  if(!MS.pf){openStop('kotoba');return}
+  const id=nextObjective();
+  if(!id){toast('SISTEMA COMPLETO · 7/7 sondas recuperadas','ok');return}
+  if(AUTO&&targetId===id){cancelAuto();toast('PILOTO AUTOMÁTICO DESACTIVADO')}
+  else engageAuto(id);
+});
+$('#archBtn').addEventListener('click',()=>{
+  const dom=dominant();
+  if(!dom.sun&&(MS.col[dom.id]||dom.id==='kotoba'))openStop(dom.id);
+});
+$('#mapBtn').addEventListener('click',()=>{
+  cam.mode=cam.mode==='map'?'follow':'map';SFX.sel();
+  $('#mapBtn').classList.toggle('off',false);
+  toast(cam.mode==='map'?'VISTA DE SISTEMA · toca un cuerpo para fijar rumbo':'VISTA DE VUELO','cy');
+});
+$('#sndBtn').addEventListener('click',()=>{
+  const m=AU.toggleMute();$('#sndBtn').classList.toggle('off',m);
+});
+function tapSelect(px,py){
+  const[wx,wy]=s2w(px,py);
+  let best=null,bd=1e9;
+  for(const b of BODIES){
+    if(b.sun)continue;
+    const d=hyp(wx-b.x,wy-b.y);
+    const lim=Math.max(40/cam.z,b.r*2.4);
+    if(d<lim&&d<bd){bd=d;best=b}
+  }
+  if(best){
+    SFX.sel();
+    if(!MS.pf){openStop('kotoba');return}
+    if(MS.col[best.id]||best.id==='kotoba'){
+      const near=hyp(SHIP.x-best.x,SHIP.y-best.y)<best.soi;
+      if(near)openStop(best.id);else engageAuto(best.id);
+    }else engageAuto(best.id);
+    if(cam.mode==='map')cam.mode='follow';
+  }
+}
+addEventListener('keydown',e=>{
+  if(e.repeat)return;
+  if(e.key==='Escape'&&panelOpen){closePanel();return}
+  if(panelOpen)return;
+  if(e.key==='ArrowLeft'||e.key==='a'){INPUT.left=true;cancelAuto();e.preventDefault()}
+  if(e.key==='ArrowRight'||e.key==='d'){INPUT.right=true;cancelAuto();e.preventDefault()}
+  if(e.key==='ArrowUp'||e.key==='w'){INPUT.thrust=true;cancelAuto();e.preventDefault()}
+  if(e.key===' '){$('#autoBtn').click();e.preventDefault()}
+  if(e.key==='m'||e.key==='M')$('#mapBtn').click();
+});
+addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a')INPUT.left=false;
+  if(e.key==='ArrowRight'||e.key==='d')INPUT.right=false;
+  if(e.key==='ArrowUp'||e.key==='w')INPUT.thrust=false;
+});
+document.addEventListener('touchmove',e=>{
+  if(!panelOpen)e.preventDefault();
+},{passive:false});
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&AU.ctx&&AU.ctx.state==='suspended')AU.ctx.resume();
+});
+
+/* ================= SECUENCIA DE LANZAMIENTO ================= */
+let cine=null;
+function launchSeq(){
+  document.body.classList.add('cine');
+  const k=BODY.kotoba;
+  SHIP.state='docked';
+  cine={t:0,locked:true};
+  toast('CONTROL: Cuenta regresiva. 3…');SFX.beep(0);
+  setTimeout(()=>{toast('2…');SFX.beep(0)},900);
+  setTimeout(()=>{toast('1…');SFX.beep(0)},1800);
+  setTimeout(()=>{toast('IGNICIÓN','ok');SFX.beep(1);SFX.launch();shake=7;
+    SHIP.state='free';SHIP.vx=k.vx;SHIP.vy=k.vy;SHIP.ang=Math.atan2(k.y,k.x)+PI/2*.9;
+    cine.burn=true},2700);
+  setTimeout(()=>{cine=null;document.body.classList.remove('cine');INPUT.thrust=false;SHIP.thr=0;
+    toast('CONTROL: Vuelo libre concedido. Toca OBJETIVO ▸ y el piloto automático traza el rumbo.','cy');
+    setTimeout(()=>toast('O vuela tú: mantén presionado y la nave va hacia tu dedo. Suelta cerca de un planeta y entra sola en órbita.'),3000);
+    const fh=$('#flyHint');if(fh)fh.hidden=false;
+    updateObjective();
+  },5400);
+}
+/* ================= BUCLE ================= */
+let lastT=0,acc=0;
+function loop(ts){
+  requestAnimationFrame(loop);
+  const t=ts/1000;
+  let dt=Math.min(t-lastT,.08);lastT=t;
+  if(panelOpen){render(t);camTick(.016);return}
+  dt*=slowmo;
+  if(cine&&cine.burn){INPUT.thrust=false;SHIP.thr=1;
+    SHIP.vx+=Math.cos(SHIP.ang)*220*dt;SHIP.vy+=Math.sin(SHIP.ang)*220*dt;
+    SHIP.x+=SHIP.vx*dt;SHIP.y+=SHIP.vy*dt;
+    tickBodies(dt,t);camTick(dt);render(t);
+    if(AU.on)AU.setThrust(1);
+    MS.time+=dt;return}
+  acc+=dt;
+  const step=1/120;let n=0;
+  while(acc>step&&n<12){physStep(step);acc-=step;n++}
+  tickBodies(dt,t);
+  if(SHIP.state!=='docked'){MS.time+=dt}
+  SHIP.trailT-=dt;
+  if(SHIP.trailT<=0&&SHIP.state!=='docked'){SHIP.trailT=.06;
+    SHIP.trail.push([SHIP.x,SHIP.y]);if(SHIP.trail.length>70)SHIP.trail.shift()}
+  camTick(dt);render(t);
+  if(AU.on)AU.setThrust(SHIP.thr);
+  // readout y botón de archivo
+  const dom=dominant();
+  const v=hyp(SHIP.vx-(dom.vx||0),SHIP.vy-(dom.vy||0));
+  let ro='';
+  if(!dom.sun){const alt=hyp(SHIP.x-dom.x,SHIP.y-dom.y)-dom.r;
+    ro=`VEL ${fmt(v)} u/s · ALT ${fmt(Math.max(0,alt))} u · ${dom.name}`}
+  else ro=`VEL ${fmt(v)} u/s · espacio profundo`;
+  if(SHIP.state==='docked')ro='ATRACADA · ESTACIÓN KOTOBA';
+  $('#readout').textContent=ro;
+  const showArch=!dom.sun&&(MS.col[dom.id]||(dom.id==='kotoba'&&MS.pf))&&SHIP.state!=='flyby';
+  $('#archBtn').hidden=!showArch;
+  if(showArch)$('#archBtn').textContent='VER ARCHIVO ▸ '+dom.name;
+}
+/* ================= ARRANQUE ================= */
+window.addEventListener('error',e=>console.error('TANSA',e.message));
+function begin(fresh){
+  AU.init();
+  if(AU.ctx&&AU.ctx.state==='suspended')AU.ctx.resume();
+  $('#start').style.transition='opacity .6s';$('#start').style.opacity='0';
+  setTimeout(()=>$('#start').remove(),650);
+  updateHUD();
+  if(fresh||!MS.pf){
+    dockAtStation();
+    setTimeout(()=>openStop('kotoba'),700);
+  }else{
+    // restaurar: en órbita del último cuerpo recuperado (o la estación)
+    let last='kotoba';
+    for(const id of ORDER.slice(1))if(MS.col[id])last=id;
+    orbitAt(last,1.7);
+    toast('CONTROL: Bitácora restaurada. '+probesCollected()+'/7 sondas a bordo.','cy');
+    const fh=$('#flyHint');if(fh)fh.hidden=false;
+    updateObjective();
+  }
+}
+if(hasSave&&MS.pf){
+  $('#contBtn').hidden=false;
+  $('#startBtn').textContent='NUEVA MISIÓN';
+  $('#contBtn').addEventListener('click',()=>begin(false));
+  $('#startBtn').addEventListener('click',()=>{
+    try{localStorage.removeItem('tansa02')}catch(e){}
+    Object.assign(MS,{pf:false,col:{},arch:{},okFirst:0,tries:0,time:0});
+    begin(true);
+  });
+}else{
+  $('#startBtn').addEventListener('click',()=>begin(true));
+}
+dockAtStation();
+updateHUD();
+window.TANSA={openStop,MS,engageAuto,BODY,INPUT,SHIP,
+  screenOf:id=>w2s(BODY[id].x,BODY[id].y)}; // consola de mando (depuración)
+requestAnimationFrame(ts=>{lastT=ts/1000;requestAnimationFrame(loop)});
+})();
+</script>
+</body>
+</html>
